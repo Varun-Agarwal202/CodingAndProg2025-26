@@ -27,6 +27,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
 
 # Application definition
 
@@ -37,15 +43,28 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app',
+
+    # REST + Auth
     'rest_framework',
+    'corsheaders',
+    'rest_framework.authtoken',  
+    'django.contrib.sites',   
+    # Allauth
     'allauth',
     'allauth.account',
     'allauth.headless',
+    'allauth.socialaccount',  
 
-    'allauth.socialaccount',
-    'corsheaders',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+
+    'app',  
 ]
+SITE_ID = 1  
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'app.serializers.CustomRegisterSerializer',
+}
+
 AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
@@ -54,11 +73,11 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 HEADLESS_FRONTEND_URLS = {
-    "account_confirm_email": "http://localhost:5173",
-    "account_reset_password_from_key": "http://localhost:5173",
-    "account_signup": "http://localhost:5173",
-    "socialaccount_login_error": "http://localhost:5173",
+    "account_confirm_email": "http://localhost:5173/confirm-email",
+    "account_reset_password_from_key": "http://localhost:5173/reset",
+    "account_signup": "http://localhost:5173/signup",
 }
+HEADLESS_ONLY = True
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -150,3 +169,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+ACCOUNT_RATE_LIMITS = {
+    "login": "5/m" }

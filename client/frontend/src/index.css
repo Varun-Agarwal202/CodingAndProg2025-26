@@ -12,7 +12,9 @@
   --text-color: #f7fafc;
 }
 
-
+button {
+  cursor:pointer;
+}
 body {
   background-color: var(--primary-color);
   color: var(--text-color);
@@ -29,4 +31,14 @@ nav {
   padding: 15px 8%;
   left: -25%;
   margin-top: -35px;
+}
+.Sign-Button {
+  background-color: #007bff; /* Blue background */
+  color: white; /* White text */
+  padding: 10px 20px; /* Top/bottom 10px, left/right 20px */
+  border: none; /* No border */
+  border-radius: 5px; /* Slightly rounded corners */
+  font-family: sans-serif;
+  font-size: 16px;
+  cursor: pointer;
 }
