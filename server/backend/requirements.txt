@@ -19,3 +19,4 @@ django-cors-headers>=4.0.0
 # Optional: for debugging
 djangorestframework-simplejwt>=6.0.0  # if using JWT auth
 
+q

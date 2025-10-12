@@ -7,7 +7,6 @@ from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 
 
-# Create your views here.
 @csrf_exempt
 @api_view(['GET', 'POST'])
 def fetch_businesses(request):
@@ -15,16 +14,22 @@ def fetch_businesses(request):
     data = request.data
     lat = data.get('lat')
     lng = data.get('lng')
+    keyword = data.get('type')  # Whatever the user sends, like "shopping mall"
+    print("Keyword received:", keyword)
+
     api_key = "AIzaSyCq8572ZvPfCWw9uEi0tEw6M2m75H5F1kU"  # Replace with your actual API key
     params = {
         'location': f'{lat},{lng}',
-        'radius': 50000,  # 5 km radius
-        'type': 'fire_station',  # You can change this to any type you want
+        'radius': 5000,        # 5 km radius
+        'keyword': keyword,    # Use keyword for flexible search
         'key': api_key
     }
+
     response = requests.get(url, params=params)
     data = response.json()
-    print(data, f'{lat},{lng}')
+    print("API Status:", data.get("status"))
+    print("Results:", data.get('results', []))
+
     for place in data.get('results', []):
         place_id = place['place_id']
         business, created = Business.objects.get_or_create(
@@ -37,6 +42,7 @@ def fetch_businesses(request):
         if created:
             details = get_business_details(place_id, api_key)
             business.name = details.get('name', '')
+            print("Saving business:", business.name)
             business.address = details.get('formatted_address', '')
             business.rating = details.get('rating')
             business.user_ratings_total = details.get('user_ratings_total')
@@ -44,11 +50,18 @@ def fetch_businesses(request):
             business.website = details.get('website')
             business.contact_number = details.get('formatted_phone_number')
             business.opening_hours = details.get('opening_hours', {})
-            business.photos = [f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo['photo_reference']}&key={api_key}" for photo in details.get('photos', [])]
+            business.photos = [
+                f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo['photo_reference']}&key={api_key}"
+                for photo in details.get('photos', [])
+            ]
             business.reviews = details.get('reviews', [])
             business.types = details.get('types', [])
             business.save()
-    businesses = Business.objects.all()
+    if keyword == "":
+        print("Hello!")
+        businesses = Business.objects.all()
+    else:
+        businesses = Business.objects.filter(types__contains=[keyword])
     serializer = BusinessSerializer(businesses, many=True)
     return JsonResponse(serializer.data, safe=False)
 
@@ -62,5 +75,3 @@ def get_business_details(place_id, api_key):
     }
     details_response = requests.get(details_url, params=details_params)
     return details_response.json().get('result', {})
-
-
