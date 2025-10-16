@@ -17,21 +17,28 @@ def fetch_businesses(request):
     keyword = data.get('type')  # Whatever the user sends, like "shopping mall"
     print("Keyword received:", keyword)
 
-    api_key = "AIzaSyCq8572ZvPfCWw9uEi0tEw6M2m75H5F1kU"  # Replace with your actual API key
-    params = {
-        'location': f'{lat},{lng}',
-        'radius': 5000,        # 5 km radius
-        'keyword': keyword,    # Use keyword for flexible search
-        'key': api_key
-    }
+    api_key = "AIzaSyCq8572ZvPfCWw9uEi0tEw6M2m75H5F1kU"
+    if keyword == "":  # Replace with your actual API key
+        params = {
+            'location': f'{lat},{lng}',
+            'radius': 10000,        # 5 km radius
+            'key': api_key
+        }
+    else:
+        params = {
+            'location': f'{lat},{lng}',
+            'radius': 10000,        # 5 km radius
+            'types': keyword,       # Use type for specific categories
+            'key': api_key
+        }
 
     response = requests.get(url, params=params)
     data = response.json()
     print("API Status:", data.get("status"))
-    print("Results:", data.get('results', []))
-
+    print("Number of results:", len(data.get('results', [])))
     for place in data.get('results', []):
         place_id = place['place_id']
+        print(place['name'], place_id)
         business, created = Business.objects.get_or_create(
             place_id=place_id,
             defaults={
@@ -61,7 +68,7 @@ def fetch_businesses(request):
         print("Hello!")
         businesses = Business.objects.all()
     else:
-        businesses = Business.objects.filter(types__contains=[keyword])
+        businesses = Business.objects.filter(types__icontains=keyword)
     serializer = BusinessSerializer(businesses, many=True)
     return JsonResponse(serializer.data, safe=False)
 

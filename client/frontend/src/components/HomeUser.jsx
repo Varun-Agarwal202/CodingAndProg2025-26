@@ -31,6 +31,7 @@ const HomeUser = () => {
 
   useEffect(() => {
     if (userLocation !== null) getNearby();
+    else console.log("User location not available yet.");
   }, [userLocation, filter]);
 
   const getNearby = async () => {
@@ -70,15 +71,15 @@ const HomeUser = () => {
         <option value="museum">Museums</option>
         <option value="gym">Gyms</option>
         <option value="hospital">Hospitals</option>
-        <option value="pharmacie">Pharmacies</option>
+        <option value="pharmacy">Pharmacies</option>
         <option value="supermarket">Supermarkets</option>
         <option value="shopping_mall">Shopping Malls</option>
-        <option value="theater">Theaters</option>
+        <option value="movie_theater">Theaters</option>
         <option value="library">Libraries</option>
         <option value="bank">Banks</option>
         <option value="post_office">Post Offices</option>
         <option value="gas_station">Gas Stations</option>
-        <option value="hotel">Hotels</option>
+        <option value="lodging">Hotels</option>
       </select>
 
       {center ? (
