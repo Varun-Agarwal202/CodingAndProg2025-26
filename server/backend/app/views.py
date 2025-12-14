@@ -14,31 +14,30 @@ def fetch_businesses(request):
     data = request.data
     lat = data.get('lat')
     lng = data.get('lng')
-    keyword = data.get('type')  # Whatever the user sends, like "shopping mall"
-    print("Keyword received:", keyword)
-
+    radius = data.get('radius', 5000)
+    keyword = data.get('type', '')  # e.g., "gym" or "restaurant"
     api_key = "AIzaSyCq8572ZvPfCWw9uEi0tEw6M2m75H5F1kU"
-    if keyword == "":  # Replace with your actual API key
-        params = {
-            'location': f'{lat},{lng}',
-            'radius': 10000,        # 5 km radius
-            'key': api_key
-        }
-    else:
-        params = {
-            'location': f'{lat},{lng}',
-            'radius': 10000,        # 5 km radius
-            'types': keyword,       # Use type for specific categories
-            'key': api_key
-        }
 
+    # --- Build parameters for Google Places API ---
+    params = {
+        'location': f'{lat},{lng}',
+        'radius': radius,
+        'key': api_key,
+    }
+    if keyword:
+        params['keyword'] = keyword
+
+    # --- Call Nearby Search API ---
     response = requests.get(url, params=params)
-    data = response.json()
-    print("API Status:", data.get("status"))
-    print("Number of results:", len(data.get('results', [])))
-    for place in data.get('results', []):
-        place_id = place['place_id']
-        print(place['name'], place_id)
+    api_data = response.json()
+    results = api_data.get('results', [])
+
+    print("API Status:", api_data.get("status"))
+    print("Number of results:", len(results))
+
+    # --- Save each result to the database (but not used for return) ---
+    for place in results:
+        place_id = place.get('place_id')
         business, created = Business.objects.get_or_create(
             place_id=place_id,
             defaults={
@@ -46,10 +45,11 @@ def fetch_businesses(request):
                 'longitude': place['geometry']['location']['lng'],
             }
         )
+
+        # Only update if new
         if created:
             details = get_business_details(place_id, api_key)
             business.name = details.get('name', '')
-            print("Saving business:", business.name)
             business.address = details.get('formatted_address', '')
             business.rating = details.get('rating')
             business.user_ratings_total = details.get('user_ratings_total')
@@ -64,13 +64,10 @@ def fetch_businesses(request):
             business.reviews = details.get('reviews', [])
             business.types = details.get('types', [])
             business.save()
-    if keyword == "":
-        print("Hello!")
-        businesses = Business.objects.all()
-    else:
-        businesses = Business.objects.filter(types__icontains=keyword)
-    serializer = BusinessSerializer(businesses, many=True)
-    return JsonResponse(serializer.data, safe=False)
+
+    # --- Return the fresh API results directly ---
+    return JsonResponse(results, safe=False)
+
 
 
 def get_business_details(place_id, api_key):
@@ -82,3 +79,32 @@ def get_business_details(place_id, api_key):
     }
     details_response = requests.get(details_url, params=details_params)
     return details_response.json().get('result', {})
+@csrf_exempt
+@api_view(['GET', 'POST'])
+def getBusiness(request):
+    print("GET Business called")
+    data = request.data
+    place_id = data.get('place_id')
+    try:
+        business = Business.objects.get(place_id=place_id)
+        return JsonResponse(business.return_dict(), safe=False)
+    except Business.DoesNotExist:
+        return JsonResponse({'error': 'Business not found'}, status=404)
+@csrf_exempt
+@api_view(['POST'])
+def add_bookmark(request):
+    print("Add Bookmark called")
+    place_id = request.data
+    place_id = place_id.get('business')
+    print("Place ID:", place_id)
+    user = request.user
+    print("User:", user)
+    try:
+        business = Business.objects.get(place_id=place_id)
+        print(business)
+        user.profile.bookmarked_businesses.add(business)
+        print(user.profile.bookmarked_businesses.all())
+        return JsonResponse({'success': 'Business bookmarked'}, status=200)
+    except Business.DoesNotExist:
+        print("Business not found")
+        return JsonResponse({'error': 'Business not found'}, status=404)

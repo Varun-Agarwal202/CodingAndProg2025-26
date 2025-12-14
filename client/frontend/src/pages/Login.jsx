@@ -24,30 +24,34 @@ const Login = () => {
       });
       console.log(formData);
   };
-  const handleSubmit = async (e) => {
-      e.preventDefault();
-      setError("");
-      setSuccess("");
-      
-      try {
-          const res = await axios.post(
-              'http://localhost:8000/auth/login/',
-              formData,
-              { headers: { 'Content-Type': 'application/json' } }
-          );
-          const userRes = await axios.get('http://localhost:8000/auth/user/', {
-            headers: { Authorization: `Token ${res.data.key}` }
-          });
-          console.log(userRes.data);
-          setIsAuthenticated(true);
-          setUser(userRes.data); // userRes.data will have username, email, etc.
-          localStorage.setItem("user", JSON.stringify(userRes.data));
-          setSuccess("Logged in successfully!");
-          navigate('/');
-      } catch (err) {
-          console.error("Login error:", err.response?.data);
-      }
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+  
+  try {
+    const res = await axios.post(
+      'http://localhost:8000/auth/login/',
+      formData,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    // Save the token first
+    localStorage.setItem("authToken", res.data.key);
+
+    const userRes = await axios.get('http://localhost:8000/auth/user/', {
+      headers: { Authorization: `Token ${res.data.key}` }
+    });
+    
+    setIsAuthenticated(true);
+    setUser(userRes.data);
+    localStorage.setItem("user", JSON.stringify(userRes.data));
+    setSuccess("Logged in successfully!");
+    navigate('/');
+  } catch (err) {
+    console.error("Login error:", err.response?.data);
+    setError("Login failed");
+  }
+};
   return (
     <div>
       <Navbar />  

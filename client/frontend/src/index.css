@@ -5,15 +5,45 @@
   --border-color: #000000;
   --text-color: #000000;
 }
+.card {
+  background-color: var(--opposite-color);
+  border: 1px solid var(--border-color);
+  color: var(--primary-color);
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
 
 :root[data-theme='dark'] {
   --primary-color: #1a202c;
   --border-color: #cbd5e0;
   --text-color: #f7fafc;
+  --opposite-color: #ffffff;
 }
-
+.container {
+  display:inline-block;
+}
 button {
   cursor:pointer;
+}
+.sidebar {
+  width: 450px;
+  background-color: var(--primary-color);
+  border-right: 1px solid var(--border-color);
+  padding: 20px;
+  box-sizing: border-box;
+  float: left;
+  height: 400px;
+  overflow-x: scroll;
+  margin-left: -100px;
+
+}
+.map {
+  margin-right: -100px;
+  float: right;
+  position: absolute;
+  width: 700px;
+  right: 190px;
 }
 body {
   background-color: var(--primary-color);
@@ -26,7 +56,7 @@ body {
 nav {
   justify-content: space-between;
   align-items: center;
-  width: 150% !important;
+  width: 145.3% !important;
   position: relative;
   padding: 15px 8%;
   left: -25%;
