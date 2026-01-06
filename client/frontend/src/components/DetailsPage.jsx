@@ -57,6 +57,39 @@ const DetailsPage = ({ data }) => {
           ))}
         </div>
       </div>
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Leave a Review</h2>
+        <div className="border rounded-lg p-4 shadow-sm card">
+          <form>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="reviewText">Your Review</label>
+              <textarea
+                id="reviewText"
+                className="w-full p-2 border rounded-lg"
+                rows="4"
+                placeholder="Write your review here..."
+              ></textarea>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="rating">Rating</label>
+              <select id="rating" className="w-full p-2 border rounded-lg">
+                <option value="">Select rating</option>
+                <option value="1">1 - Poor</option>
+                <option value="2">2 - Fair</option>
+                <option value="3">3 - Good</option>
+                <option value="4">4 - Very Good</option>
+                <option value="5">5 - Excellent</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Submit Review
+            </button>
+          </form>
+        </div>  
+      </div>
     </div>
   )
 }
