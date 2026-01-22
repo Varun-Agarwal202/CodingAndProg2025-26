@@ -21,6 +21,7 @@ def fetch_businesses(request):
     lat = data.get('lat')
     lng = data.get('lng')
     radius = data.get('radius', 5) * 1000
+    print(radius)
     keyword = data.get('type', '')    # kept for compatibility
     query = data.get('query')    # new: text search string
     api_key = "AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ"

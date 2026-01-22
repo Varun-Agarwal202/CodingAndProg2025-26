@@ -12,7 +12,7 @@ const HomeUser = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [nearbyBusinesses, setNearbyBusinesses] = useState([]);
-  const [radius, setRadius] = useState(5000);
+  const [radius, setRadius] = useState(5);
 
   const { isAuthenticated, user } = useContext(AuthContext);
 
