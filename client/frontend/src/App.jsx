@@ -13,11 +13,12 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element = {<Home />} />
-      <Route path="/login" element = {<Login />} />
-      <Route path="/signup" element = {<Signup />} />
-      <Route path = "/business/:id" element = {<BusinessPage />} />
-      <Route path = "/directory" element = {<Directory />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/directory" element={<Directory />} />
+      <Route path="/business/:id" element={<BusinessPage />} />
+      <Route path="/about" element={<About />} />
       <Route path="*" element={<h2>Page Not Found</h2>} />
     </Routes>
   )
