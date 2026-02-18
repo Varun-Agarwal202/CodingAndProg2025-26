@@ -8,6 +8,9 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Directory from './pages/Directory'
 import BusinessPage from './pages/BusinessPage'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import Services from './pages/Services'
 
 function App() {
 
@@ -19,6 +22,8 @@ function App() {
       <Route path="/directory" element={<Directory />} />
       <Route path="/business/:id" element={<BusinessPage />} />
       <Route path="/about" element={<About />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="*" element={<h2>Page Not Found</h2>} />
     </Routes>
   )

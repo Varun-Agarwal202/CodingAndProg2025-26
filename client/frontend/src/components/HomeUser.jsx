@@ -6,13 +6,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBookmark } from '@fortawesome/free-solid-svg-icons'
 import { AuthContext } from '../context/AuthContext';
 
+const DEFAULT_LOCATION = { latitude: 51.5074, longitude: -0.1278 };
+
 const HomeUser = () => {
-  const oldCords = localStorage.getItem("userLocation");
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [nearbyBusinesses, setNearbyBusinesses] = useState([]);
   const [radius, setRadius] = useState(5);
+  const [locationError, setLocationError] = useState(null);
 
   const { isAuthenticated, user } = useContext(AuthContext);
 
@@ -54,39 +56,59 @@ const HomeUser = () => {
   }, [bookmarkedIds, user]);
 
   const navigate = useNavigate();
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
-          localStorage.setItem("userLocation", JSON.stringify({ latitude, longitude }));
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error obtaining location:", error);
-          setLoading(false);
-        },
-        { enableHighAccuracy: false, maximumAge: Infinity, timeout: 20000 }
-      );
-    } else {
-      console.log("Geolocation not supported.");
+
+  const requestLocation = () => {
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
       setLoading(false);
+      return;
     }
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const loc = { latitude, longitude };
+        setUserLocation(loc);
+        localStorage.setItem("userLocation", JSON.stringify(loc));
+        setLocationError(null);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error obtaining location:", error);
+        setLocationError("Location unavailable. Using default. Allow location in your browser to see nearby businesses.");
+        setLoading(false);
+      },
+      { enableHighAccuracy: false, maximumAge: Infinity, timeout: 20000 }
+    );
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("userLocation");
+    if (stored) {
+      try {
+        setUserLocation(JSON.parse(stored));
+      } catch (_) {}
+      setLoading(false);
+      return;
+    }
+    requestLocation();
   }, []);
 
+  const effectiveLocation = userLocation ?? DEFAULT_LOCATION;
+
   useEffect(() => {
-    if (userLocation !== null) getNearby();
-    else console.log("User location not available yet.");
-  }, [userLocation, filter, radius]);
+    getNearby(effectiveLocation);
+  }, [effectiveLocation?.latitude, effectiveLocation?.longitude, filter, radius]);
 
   // updated: accept optional text query (uses Places Text Search when provided)
-  const getNearby = async ({ query } = {}) => {
+  const getNearby = async (location = effectiveLocation, { query } = {}) => {
+    if (!location) return;
     try {
       setIsSearching(true);
       const body = {
-        lat: userLocation.latitude,
-        lng: userLocation.longitude,
+        lat: location.latitude,
+        lng: location.longitude,
         radius,
       };
       // if a custom text query was provided, send it as `query` to use textsearch on backend
@@ -146,11 +168,9 @@ const HomeUser = () => {
     }
   };
 
-  const center = userLocation 
-    ? { lat: userLocation.latitude, lng: userLocation.longitude } 
-    : oldCords 
-      ? { lat: JSON.parse(oldCords).latitude, lng: JSON.parse(oldCords).longitude } 
-      : null;
+  const center = effectiveLocation
+    ? { lat: effectiveLocation.latitude, lng: effectiveLocation.longitude }
+    : null;
 
   return (
     <div>
@@ -202,7 +222,7 @@ const HomeUser = () => {
               style={{ width: 260, marginLeft: 4 }}
             />
             <button
-              onClick={() => getNearby({ query: searchQuery })}
+              onClick={() => getNearby(effectiveLocation, { query: searchQuery })}
               disabled={!searchQuery.trim() || isSearching}
             >
               {isSearching ? "Searching..." : "Search"}
@@ -222,16 +242,30 @@ const HomeUser = () => {
       <div className="container" style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
         <div className="map w-2/3 inline-block" style={{ float: "right" }}>
           {center ? (
-            <LoadScript googleMapsApiKey="AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ">
-              <GoogleMap mapContainerStyle={{ height: "400px", width: "100%" }} center={center} zoom={15}>
-                <Marker position={center} />
-                {nearbyBusinesses.map((business, index) =>
-                  business.geometry.location.lat && business.geometry.location.lng ? (
-                    <Marker key={index} position={{ lat: business.geometry.location.lat, lng: business.geometry.location.lng }} />
-                  ) : null
-                )}
-              </GoogleMap>
-            </LoadScript>
+            <>
+              {locationError && (
+                <p className="mb-2 text-amber-700 dark:text-amber-400 text-sm">{locationError}</p>
+              )}
+              {!userLocation && !loading && (
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="mb-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Use my location
+                </button>
+              )}
+              <LoadScript googleMapsApiKey="AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ">
+                <GoogleMap mapContainerStyle={{ height: "400px", width: "100%" }} center={center} zoom={15}>
+                  <Marker position={center} />
+                  {nearbyBusinesses.map((business, index) =>
+                    business.geometry?.location?.lat && business.geometry?.location?.lng ? (
+                      <Marker key={index} position={{ lat: business.geometry.location.lat, lng: business.geometry.location.lng }} />
+                    ) : null
+                  )}
+                </GoogleMap>
+              </LoadScript>
+            </>
           ) : loading ? (
             <p>Getting your location...</p>
           ) : (
