@@ -1,76 +1,178 @@
 @import "tailwindcss";
 
-:root {
-  --primary-color: #ffffff;
-  --border-color: #000000;
-  --text-color: #000000;
-}
-.card {
-  background-color: var(--opposite-color);
-  border: 1px solid var(--border-color);
-  color: var(--primary-color);
-  border-radius: 5px;
-  padding: 10px;
-  margin-bottom: 10px;
+/* Design tokens - Dark theme (default) */
+:root,
+:root[data-theme="dark"] {
+  --bg-surface: #0b1120;        /* slate-950 */
+  --bg-elevated: #020617;      /* slate-950 slightly darker */
+  --border-subtle: rgba(148, 163, 184, 0.35); /* slate-400 */
+  --accent: #38bdf8;           /* sky-400 */
+  --accent-soft: rgba(56, 189, 248, 0.16);
+  --accent-strong: #0ea5e9;    /* sky-500 */
+  --text-main: #e5e7eb;        /* gray-200 */
+  --text-muted: #9ca3af;       /* gray-400 */
+  --danger: #f97373;
 }
 
-:root[data-theme='dark'] {
-  --primary-color: #1a202c;
-  --border-color: #cbd5e0;
-  --text-color: #f7fafc;
-  --opposite-color: #ffffff;
+/* Light theme */
+:root[data-theme="light"] {
+  --bg-surface: #f8fafc;        /* slate-50 */
+  --bg-elevated: #ffffff;      /* white */
+  --border-subtle: rgba(148, 163, 184, 0.25); /* slate-400 lighter */
+  --accent: #0ea5e9;           /* sky-500 */
+  --accent-soft: rgba(14, 165, 233, 0.1);
+  --accent-strong: #0284c7;    /* sky-600 */
+  --text-main: #1e293b;        /* slate-800 */
+  --text-muted: #64748b;       /* slate-500 */
+  --danger: #dc2626;
 }
-.container {
-  display:inline-block;
-}
-button {
-  cursor:pointer;
-}
-.sidebar {
-  width: 450px;
-  background-color: var(--primary-color);
-  border-right: 1px solid var(--border-color);
-  padding: 20px;
-  box-sizing: border-box;
-  float: left;
-  height: 400px;
-  overflow-x: scroll;
-  margin-left: -100px;
 
-}
-.map {
-  margin-right: -100px;
-  float: right;
-  position: absolute;
-  width: 700px;
-  right: 190px;
-}
 body {
-  background-color: var(--primary-color);
-  color: var(--text-color);
-  font-family: 'Inter', sans-serif;
   margin: 0;
-  padding: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+  background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  position: relative;
-  padding: 15px 8%;
-  left: 0;
-  margin-top: 0;
-  z-index: 50;
+:root[data-theme="light"] body {
+  background: radial-gradient(circle at top, #e0e7ff 0, #f8fafc 45%, #ffffff 100%);
 }
-.Sign-Button {
-  background-color: #007bff; /* Blue background */
-  color: white; /* White text */
-  padding: 10px 20px; /* Top/bottom 10px, left/right 20px */
-  border: none; /* No border */
-  border-radius: 5px; /* Slightly rounded corners */
-  font-family: sans-serif;
-  font-size: 16px;
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
   cursor: pointer;
+}
+
+/* Modern elevated card */
+.bf-card {
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.9));
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.9),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  backdrop-filter: blur(22px);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+:root[data-theme="light"] .bf-card {
+  background: radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), rgba(255, 255, 255, 0.95));
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+}
+
+/* Shared page shell padding */
+.bf-page-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3rem;
+}
+
+@media (min-width: 1024px) {
+  .bf-page-shell {
+    padding-top: 3.5rem;
+    padding-bottom: 4rem;
+  }
+}
+
+/* Subtle scrollbars for sidebars / lists */
+.bf-scroll-soft {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+}
+
+.bf-scroll-soft::-webkit-scrollbar {
+  width: 8px;
+}
+.bf-scroll-soft::-webkit-scrollbar-track {
+  background: transparent;
+}
+.bf-scroll-soft::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
+  border-radius: 999px;
+}
+
+/* Input styles */
+.bf-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--text-main);
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.bf-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.bf-input::placeholder {
+  color: var(--text-muted);
+}
+
+.bf-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Select styles */
+select.bf-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25em 1.25em;
+  padding-right: 2.5rem;
+}
+
+/* Button styles */
+.bf-button-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+}
+
+.bf-button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+}
+
+.bf-button-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.bf-button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+:root[data-theme="light"] .bf-button-primary {
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+}
+
+:root[data-theme="light"] .bf-button-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
 }

@@ -1,7 +1,10 @@
 from django.contrib import admin
-
-# Register your models here.
-
 from .models import Business, Profile
-admin.site.register(Business)
-admin.site.register(Profile)   
+
+@admin.register(Business)
+class BusinessAdmin(admin.ModelAdmin):
+    list_display = ('name','place_id','created_at')
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user','role')

@@ -15,7 +15,7 @@ const Login = () => {
       });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { setIsAuthenticated, setUser } = useContext(AuthContext)
+  const { setIsAuthenticated, setUser, setRole } = useContext(AuthContext)
   
   const handleChange = (e) => {
       setFormData({
@@ -41,10 +41,29 @@ const Login = () => {
     const userRes = await axios.get('http://localhost:8000/auth/user/', {
       headers: { Authorization: `Token ${res.data.key}` }
     });
-    
+    console.log('[Login] /auth/user/ payload:', userRes.data);
+    const userData = userRes.data;
+
+    // Fetch profile/role from dedicated endpoint
+    let resolvedRole = null;
+    try {
+      const profileRes = await axios.get('http://localhost:8000/api/my_profile/', {
+        headers: { Authorization: `Token ${res.data.key}` }
+      });
+      console.log('[Login] /api/my_profile/ payload:', profileRes.data);
+      resolvedRole = profileRes.data?.role || null;
+    } catch (e) {
+      console.error('[Login] failed to fetch my_profile:', e);
+    }
+    console.log('[Login] resolvedRole:', resolvedRole);
+
     setIsAuthenticated(true);
-    setUser(userRes.data);
-    localStorage.setItem("user", JSON.stringify(userRes.data));
+    setUser(userData);
+    if (resolvedRole) {
+      setRole(resolvedRole);
+      localStorage.setItem('role', resolvedRole);
+    }
+    localStorage.setItem("user", JSON.stringify(userData));
     setSuccess("Logged in successfully!");
     navigate('/');
   } catch (err) {
@@ -53,38 +72,101 @@ const Login = () => {
   }
 };
   return (
-    <div>
-      <Navbar />  
-    <div style = {{maxWidth: 400, margin: "auto", padding: 20}}>
-      <h2>Login Page</h2>
-      <form onSubmit={handleSubmit}>
-        <input 
-          type = "text"
-          name = "username"
-          placeholder = "Username"
-          value = {formData.username}
-          onChange = {handleChange}
-          required
-          style = {{width: "100%", padding: 8, margin: "8px 0"}}
-        />
-        <br />
-        <input 
-          type = "password"
-          name = "password"
-          placeholder = "Password"
-          value = {formData.password}
-          onChange = {handleChange}
-          required
-          style = {{width: "100%", padding: 8, margin: "8px 0"}}
-        />
-        <br />
-        <button className = "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" type="submit" style={{padding: 10, width: "100%", color: "white", border: "none", borderRadius: 4}}>Login</button>
-      </form>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {success && <p style={{color: 'green'}}>{success}</p>}
-      </div>
-    </div>
+    <div className="min-h-screen flex flex-col bg-transparent">
+      <Navbar />
+      <main className="bf-page-shell flex-1 flex items-center justify-center">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-center w-full">
+          {/* Left: Hero copy */}
+          <section className="space-y-6 text-left">
+            <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium text-sky-600 dark:text-sky-300 bf-pill">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              Welcome back to BusinessFinder
+            </span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+              Sign in to discover and support
+              <span className="text-sky-400"> local businesses</span>.
+            </h1>
+            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl">
+              Continue exploring nearby spots, managing bookmarks, and staying connected
+              with the businesses that matter in your community.
+            </p>
+          </section>
 
+          {/* Right: Auth card */}
+            <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8">
+            <header className="mb-6">
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">Log in</h2>
+                <p className="mt-1.5 text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                Enter your credentials to access your BusinessFinder account.
+              </p>
+            </header>
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2 text-left">
+                <label htmlFor="username" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  name="username"
+                  placeholder="Enter your username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label htmlFor="password" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+
+              {error && (
+                <p className="text-xs text-rose-400 bg-rose-950/50 border border-rose-800/60 rounded-md px-3 py-2">
+                  {error}
+                </p>
+              )}
+              {success && (
+                <p className="text-xs text-emerald-300 bg-emerald-950/40 border border-emerald-700/50 rounded-md px-3 py-2">
+                  {success}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-sm hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 focus-visible:ring-offset-slate-950 transition-colors"
+              >
+                Log in
+              </button>
+            </form>
+
+            <p className="mt-5 text-xs text-slate-400 text-center">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/signup')}
+                className="font-medium text-sky-300 hover:text-sky-200 underline underline-offset-4"
+              >
+                Create one
+              </button>
+            </p>
+          </section>
+        </div>
+      </main>
+    </div>
   )
 }
 

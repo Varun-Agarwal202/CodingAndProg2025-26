@@ -16,8 +16,16 @@ const HomeUser = () => {
   const [radius, setRadius] = useState(5);
   const [locationError, setLocationError] = useState(null);
 
+  // computed effective location:
+  // prefer live userLocation, fall back to stored userLocation (if any), otherwise null
+  const effectiveLocation = userLocation ?? (() => {
+    const stored = localStorage.getItem('userLocation');
+    if (!stored) return null;
+    try { return JSON.parse(stored); } catch { return null; }
+  })();
+  
   const { isAuthenticated, user } = useContext(AuthContext);
-
+  
   const [bookmarkedIds, setBookmarkedIds] = useState([]);
 
   // NEW: state for custom text query
@@ -95,11 +103,20 @@ const HomeUser = () => {
     requestLocation();
   }, []);
 
-  const effectiveLocation = userLocation ?? DEFAULT_LOCATION;
-
+  // call getNearby only after we know whether we have a saved userLocation
+  // if userLocation exists, use it; otherwise, only use DEFAULT_LOCATION after
+  // a location attempt has completed (loading === false)
   useEffect(() => {
-    getNearby(effectiveLocation);
-  }, [effectiveLocation?.latitude, effectiveLocation?.longitude, filter, radius]);
+    const locToUse = userLocation ?? null;
+    if (locToUse) {
+      getNearby(locToUse);
+      return;
+    }
+    // if we've finished trying to get location and none available, use default
+    if (!loading && !userLocation) {
+      getNearby(DEFAULT_LOCATION);
+    }
+  }, [userLocation, loading, filter, radius]);
 
   // updated: accept optional text query (uses Places Text Search when provided)
   const getNearby = async (location = effectiveLocation, { query } = {}) => {
@@ -111,7 +128,6 @@ const HomeUser = () => {
         lng: location.longitude,
         radius,
       };
-      // if a custom text query was provided, send it as `query` to use textsearch on backend
       if (query) body.query = query;
       else if (filter) body.type = filter;
 
@@ -121,10 +137,14 @@ const HomeUser = () => {
         body: JSON.stringify(body),
       });
       const data = await response.json();
-      console.log('Nearby Businesses:', data);
-      setNearbyBusinesses(data);
+      console.log('Nearby Businesses (raw):', data);
+
+      // Normalize response: accept either an array or an object with `results`
+      const normalized = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+      setNearbyBusinesses(normalized);
     } catch (error) {
       console.error('Error fetching nearby businesses:', error);
+      setNearbyBusinesses([]);
     } finally {
       setIsSearching(false);
     }
@@ -173,157 +193,181 @@ const HomeUser = () => {
     : null;
 
   return (
-    <div>
-      {/* controls wrapper - keeps layout stable when custom input appears */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          marginBottom: 12
-        }}
-      >
-        <label htmlFor="business-type" style={{ marginRight: 6 }}>Select Business Type:</label>
-        <select
-          onChange={(e) => setFilter(e.target.value)}
-          id="business-type"
-          value={filter}
-          style={{ minWidth: 160 }}
-        >
-          <option value="">All</option>
-          <option value="restaurant">Restaurants</option>
-          <option value="cafe">Cafes</option>
-          <option value="bar">Bars</option>
-          <option value="park">Parks</option>
-          <option value="museum">Museums</option>
-          <option value="gym">Gyms</option>
-          <option value="hospital">Hospitals</option>
-          <option value="pharmacy">Pharmacies</option>
-          <option value="supermarket">Supermarkets</option>
-          <option value="shopping_mall">Shopping Malls</option>
-          <option value="movie_theater">Theaters</option>
-          <option value="library">Libraries</option>
-          <option value="bank">Banks</option>
-          <option value="post_office">Post Offices</option>
-          <option value="gas_station">Gas Stations</option>
-          <option value="lodging">Hotels</option>
-          <option value="custom">Custom text query...</option>
-        </select>
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="business-type" className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+            Type
+          </label>
+          <select
+            onChange={(e) => setFilter(e.target.value)}
+            id="business-type"
+            value={filter}
+            className="min-w-[11rem] rounded-md border border-slate-600 bg-slate-900/60 px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+          >
+            <option value="">All</option>
+            <option value="restaurant">Restaurants</option>
+            <option value="cafe">Cafes</option>
+            <option value="bar">Bars</option>
+            <option value="park">Parks</option>
+            <option value="museum">Museums</option>
+            <option value="gym">Gyms</option>
+            <option value="hospital">Hospitals</option>
+            <option value="pharmacy">Pharmacies</option>
+            <option value="supermarket">Supermarkets</option>
+            <option value="shopping_mall">Shopping Malls</option>
+            <option value="movie_theater">Theaters</option>
+            <option value="library">Libraries</option>
+            <option value="bank">Banks</option>
+            <option value="post_office">Post Offices</option>
+            <option value="gas_station">Gas Stations</option>
+            <option value="lodging">Hotels</option>
+            <option value="custom">Custom text query…</option>
+          </select>
+        </div>
 
-        {/* show input when custom selected */}
-        {filter === "custom" && (
-          <>
+        {filter === 'custom' && (
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
               placeholder='e.g. "pizza near Seattle" or "123 Main St"'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: 260, marginLeft: 4 }}
+              className="w-64 rounded-md border border-slate-600 bg-slate-900/60 px-2.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
             <button
               onClick={() => getNearby(effectiveLocation, { query: searchQuery })}
               disabled={!searchQuery.trim() || isSearching}
+              className="inline-flex items-center rounded-md bg-sky-500 px-3 py-2 text-xs font-medium text-slate-950 hover:bg-sky-400 disabled:opacity-70"
             >
-              {isSearching ? "Searching..." : "Search"}
+              {isSearching ? 'Searching…' : 'Search'}
             </button>
-          </>
+          </div>
         )}
 
-        <label htmlFor="radius" style={{ marginLeft: 6 }}>Radius (km):</label>
-        <input
-          type="text"
-          id="radius"
-          onChange={(e) => setRadius(Number(e.target.value))}
-          style={{ width: 90 }}
-        />
+        <div className="flex items-center gap-2">
+          <label htmlFor="radius" className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+            Radius (km)
+          </label>
+          <input
+            type="text"
+            id="radius"
+            onChange={(e) => setRadius(Number(e.target.value))}
+            className="w-20 rounded-md border border-slate-600 bg-slate-900/60 px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+          />
+        </div>
       </div>
 
-      <div className="container" style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
-        <div className="map w-2/3 inline-block" style={{ float: "right" }}>
+      {/* Map + list */}
+      <div className="mt-2 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-start">
+        <div className="bf-card h-[380px] md:h-[420px] overflow-hidden">
           {center ? (
-            <>
-              {locationError && (
-                <p className="mb-2 text-amber-700 dark:text-amber-400 text-sm">{locationError}</p>
-              )}
-              {!userLocation && !loading && (
-                <button
-                  type="button"
-                  onClick={requestLocation}
-                  className="mb-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Use my location
-                </button>
-              )}
-              <LoadScript googleMapsApiKey="AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ">
-                <GoogleMap mapContainerStyle={{ height: "400px", width: "100%" }} center={center} zoom={15}>
-                  <Marker position={center} />
-                  {nearbyBusinesses.map((business, index) =>
-                    business.geometry?.location?.lat && business.geometry?.location?.lng ? (
-                      <Marker key={index} position={{ lat: business.geometry.location.lat, lng: business.geometry.location.lng }} />
-                    ) : null
-                  )}
-                </GoogleMap>
-              </LoadScript>
-            </>
+            <div className="h-full w-full flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-slate-400">
+                  {locationError
+                    ? <span className="text-amber-300">{locationError}</span>
+                    : 'Showing places around your location.'}
+                </div>
+                {!userLocation && !loading && (
+                  <button
+                    type="button"
+                    onClick={requestLocation}
+                    className="px-3 py-1.5 rounded-md bg-sky-500 text-xs font-medium text-slate-950 hover:bg-sky-400"
+                  >
+                    Use my location
+                  </button>
+                )}
+              </div>
+              <div className="flex-1 rounded-xl overflow-hidden">
+                <LoadScript googleMapsApiKey="AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ">
+                  <GoogleMap mapContainerStyle={{ height: "100%", width: "100%" }} center={center} zoom={15}>
+                    <Marker position={center} />
+                    {nearbyBusinesses.map((business, index) =>
+                      business.geometry?.location?.lat && business.geometry?.location?.lng ? (
+                        <Marker key={index} position={{ lat: business.geometry.location.lat, lng: business.geometry.location.lng }} />
+                      ) : null
+                    )}
+                  </GoogleMap>
+                </LoadScript>
+              </div>
+            </div>
           ) : loading ? (
-            <p>Getting your location...</p>
+            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+              Getting your location…
+            </div>
           ) : (
-            <p>Location not available.</p>
+            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+              Location not available.
+            </div>
           )}
         </div>
 
-        <div className="sidebar">
-          <h3>Nearby Businesses:</h3>
-          <label htmlFor='sort-dropdown'>Sort By: </label>
-          <select id="sort-dropdown" onChange={(e) => {
-            const sortBy = e.target.value;
-            const sortedBusinesses = [...nearbyBusinesses];
-            if (sortBy === 'name') {
-              sortedBusinesses.sort((a, b) => a.name.localeCompare(b.name));
-            } else if (sortBy === 'rating') {
-              sortedBusinesses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            }
-            setNearbyBusinesses(sortedBusinesses);
-          }}>
-            <option value="">Default</option>
-            <option value="name">Name</option>
-            <option value="rating">Rating</option>
-          </select>
+        <div className="bf-card h-[380px] md:h-[420px] p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-100">Nearby businesses</h3>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <label htmlFor="sort-dropdown">Sort by</label>
+              <select
+                id="sort-dropdown"
+                onChange={(e) => {
+                  const sortBy = e.target.value;
+                  const sortedBusinesses = [...nearbyBusinesses];
+                  if (sortBy === 'name') {
+                    sortedBusinesses.sort((a, b) => a.name.localeCompare(b.name));
+                  } else if (sortBy === 'rating') {
+                    sortedBusinesses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+                  }
+                  setNearbyBusinesses(sortedBusinesses);
+                }}
+                className="rounded-md border border-slate-600 bg-slate-900/80 px-2 py-1 text-xs text-slate-100"
+              >
+                <option value="">Default</option>
+                <option value="name">Name</option>
+                <option value="rating">Rating</option>
+              </select>
+            </div>
+          </div>
 
-          <ul>
+          <ul className="space-y-2 overflow-y-auto bf-scroll-soft text-sm flex-1 pr-1">
             {nearbyBusinesses.map((business, index) => {
               const isBookmarked = bookmarkedIds.includes(business.place_id);
               return (
-                <li className="card" key={index}>
+                <li
+                  key={index}
+                  className="relative rounded-lg border border-slate-700/70 bg-slate-900/70 px-3 py-2.5 hover:border-sky-500/70 transition-colors"
+                >
                   <button
-                    className="float-end"
+                    className="absolute right-2 top-2"
                     onClick={() => addBookmark(business.place_id)}
                     aria-pressed={isBookmarked}
                     title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
                   >
-                    <FontAwesomeIcon icon={faBookmark} style={{ color: isBookmarked ? '#f6e05e' : undefined }} />
+                    <FontAwesomeIcon icon={faBookmark} style={{ color: isBookmarked ? '#facc15' : '#64748b' }} />
                   </button>
-                  <br />
-                  <strong>{business.name}</strong><br />
-                  {business.vicinity}<br />
-                  Rating: {business.rating ? business.rating : 'N/A'}
-                  <br />
-                  <button className="ml-2 px-2 py-1 bg-blue-500 text-white rounded" onClick={() => {
-                    const id = business.place_id;
-                    const lat = business.geometry.location.lat;
-                    const lng = business.geometry.location.lng;
-                    navigate(`/business/${id}`, );
-                    
-                  }}>
-                    <TfiNewWindow style={{verticalAlign: 'middle' }} />
-                  </button>
-  
+                  <div className="pr-7">
+                    <div className="font-semibold text-slate-100">{business.name}</div>
+                    <div className="text-xs text-slate-400">{business.vicinity}</div>
+                    <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
+                      <span>Rating: {business.rating ? business.rating : 'N/A'}</span>
+                      <button
+                        className="inline-flex items-center gap-1 rounded-md bg-sky-500/90 px-2 py-1 text-[11px] font-medium text-slate-950 hover:bg-sky-400"
+                        onClick={() => {
+                          const id = business.place_id;
+                          navigate(`/business/${id}`);
+                        }}
+                      >
+                        View
+                        <TfiNewWindow style={{ verticalAlign: 'middle' }} />
+                      </button>
+                    </div>
+                  </div>
                 </li>
               );
             })}
-          </ul> 
+          </ul>
         </div>
       </div>
     </div>

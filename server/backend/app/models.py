@@ -1,8 +1,5 @@
 from django.db import models
 from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-# Create your models here.
 
 class Business(models.Model):
     name = models.CharField(max_length=255)
@@ -43,19 +40,32 @@ class Business(models.Model):
             "special_offers": self.special_offers,
         }
 class Profile(models.Model):
+    ROLE_USER = 'user'
+    ROLE_BUSINESS = 'business'
+    ROLE_ADMIN = 'admin'
+
+    ROLE_CHOICES = [
+        (ROLE_USER, 'User'),
+        (ROLE_BUSINESS, 'Business'),
+        (ROLE_ADMIN, 'Admin'),
+    ]
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     bookmarked_businesses = models.ManyToManyField(Business, blank=True, related_name='bookmarked_by')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_USER)
 
     def __str__(self):
-        return f"Profile: {self.user}"
+        return f"Profile: {self.user} ({self.role})"
 
-# create profile automatically when a user is created
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
-
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def save_user_profile(sender, instance, **kwargs):
-    # ensures profile exists and is saved after user updates
-    instance.profile.save()
+    def is_business(self):
+        return self.role == self.ROLE_BUSINESS
+    
+    def is_admin(self):
+        return self.role == self.ROLE_ADMIN
+    
+    def to_dict(self):
+        return {
+            "user_id": self.user.id,
+            "username": getattr(self.user, "username", None),
+            "role": self.role,
+        }

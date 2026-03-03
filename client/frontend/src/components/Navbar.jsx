@@ -12,9 +12,11 @@ const Navbar = () => {
       (!localTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
     ) {
       document.documentElement.setAttribute('data-theme', 'dark')
+      document.documentElement.classList.add('dark')
       setIsDark(true)
     } else {
       document.documentElement.setAttribute('data-theme', 'light')
+      document.documentElement.classList.remove('dark')
       setIsDark(false)
     }
   }, [])
@@ -22,10 +24,12 @@ const Navbar = () => {
   const toggleTheme = () => {
     if (isDark) {
       document.documentElement.setAttribute('data-theme', 'light')
+      document.documentElement.classList.remove('dark')
       localStorage.setItem('color-theme', 'light')
       setIsDark(false)
     } else {
       document.documentElement.setAttribute('data-theme', 'dark')
+      document.documentElement.classList.add('dark')
       localStorage.setItem('color-theme', 'dark')
       setIsDark(true)
     }

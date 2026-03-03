@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,6 +25,9 @@ SECRET_KEY = 'django-insecure-c7q9-$iel7+&k07yi$6s$+i5zc#(j$dkr-d9&pilzt+4y=^bmk
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# WARNING: development-only placement of Google API key. Move to environment or .env for production.
+GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', 'AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ')
 
 ALLOWED_HOSTS = []
 
@@ -61,8 +65,13 @@ INSTALLED_APPS = [
     'app',  
 ]
 SITE_ID = 1  
+# tell dj-rest-auth to use our register serializer
 REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'app.serializers.CustomRegisterSerializer',
+    "REGISTER_SERIALIZER": "app.serializers.CustomRegisterSerializer",
+}
+
+REST_AUTH_SERIALIZERS = {
+    "USER_DETAILS_SERIALIZER": "app.serializers.UserDetailsSerializer",
 }
 
 AUTHENTICATION_BACKENDS = [
@@ -73,30 +82,33 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 HEADLESS_FRONTEND_URLS = {
-    "account_confirm_email": "http://localhost:5173/confirm-email",
-    "account_reset_password_from_key": "http://localhost:5173/reset",
-    "account_signup": "http://localhost:5173/signup",
+    'account_confirm_email': 'http://localhost:5173/confirm-email?key={key}',
+    'account_reset_password_from_key': 'http://localhost:5173/reset-password?key={key}',
+    'account_signup': 'http://localhost:5173/signup',
 }
 HEADLESS_ONLY = True
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',        # moved up
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'django.middleware.common.CommonMiddleware',   # keep once
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-
 ]
 
 HEADLESS_ONLY = True
-CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
-CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOW_CREDENTIALS = True   # <--- ensure credentials header is 'true'
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -174,3 +186,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ACCOUNT_RATE_LIMITS = {
     "login": "5/m" }
+
+# Use console backend in dev so allauth/allauth-headless doesn't try to connect to localhost:25
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+ACCOUNT_ADAPTER = "app.adapters.CustomAccountAdapter"
