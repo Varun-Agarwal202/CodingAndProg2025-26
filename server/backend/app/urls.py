@@ -7,10 +7,12 @@ from .views import (
     user_bookmarks,
     get_businesses,
     my_profile,
+    geocode,
 )
 
 urlpatterns = [
     path('nearby_businesses/', fetch_businesses, name='fetch_businesses'),
+    path('geocode/', geocode, name='geocode'),
     path('getBusiness/', getBusiness, name='fetch_businesses'),
     path('add_bookmark/', add_bookmark, name='add_bookmark'),
     path('businesses/', get_businesses, name='get_businesses'),

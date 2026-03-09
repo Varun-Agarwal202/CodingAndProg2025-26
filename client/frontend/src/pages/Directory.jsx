@@ -5,10 +5,12 @@ import { faBookmark, faMapMarkerAlt, faStar, faSearch } from '@fortawesome/free-
 import RootLayout from '../layouts/RootLayout'
 import { AuthContext } from '../context/AuthContext'
 import LoginPromptModal from '../components/LoginPromptModal'
+import { useT } from '../utils/useT'
 
 const Directory = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useContext(AuthContext)
+  const tt = useT()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [isSearching, setIsSearching] = useState(false)
@@ -18,11 +20,21 @@ const Directory = () => {
   const [bookmarkedIds, setBookmarkedIds] = useState([])
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [userLocation, setUserLocation] = useState(null)
+  const [manualLocation, setManualLocation] = useState(() => {
+    const stored = localStorage.getItem('manualLocation')
+    return stored ? JSON.parse(stored) : null
+  })
 
   const DEFAULT_LOC = { lat: 51.5074, lng: -0.1278 }
 
   // Try to load saved location or request geolocation
   useEffect(() => {
+    const manual = localStorage.getItem('manualLocation')
+    if (manual) {
+      try {
+        setManualLocation(JSON.parse(manual))
+      } catch (_) {}
+    }
     const stored = localStorage.getItem('userLocation')
     if (stored) {
       try {
@@ -107,7 +119,7 @@ const Directory = () => {
       }
 
       // fetch from Google Places API (same as homepage map)
-      const loc = userLocation || DEFAULT_LOC
+      const loc = manualLocation || userLocation || DEFAULT_LOC
       const lat = typeof loc.latitude !== 'undefined' ? loc.latitude : loc.lat
       const lng = typeof loc.longitude !== 'undefined' ? loc.longitude : loc.lng
       const body = {
@@ -159,7 +171,7 @@ const Directory = () => {
       setIsSearching(true)
       getListings()
     }
-  }, [filter, userLocation])
+  }, [filter, userLocation, manualLocation])
 
   const handleSearch = async () => {
     setIsSearching(true)
@@ -203,9 +215,9 @@ const Directory = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-sky-400 to-indigo-500 bg-clip-text text-transparent">
-            Business Directory
+            {tt('directory.title')}
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">Discover and explore local businesses in your area</p>
+          <p className="text-slate-600 dark:text-slate-400">{tt('directory.subtitle')}</p>
         </div>
 
         {/* Search and Filter Section */}
@@ -214,7 +226,7 @@ const Directory = () => {
             {/* Search Input */}
             <div className="flex-1 w-full md:w-auto">
               <label htmlFor="search-input" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                Search Businesses
+                {tt('directory.searchBusinesses')}
               </label>
               <div className="relative">
                 <FontAwesomeIcon 
@@ -224,11 +236,11 @@ const Directory = () => {
                 <input
                   id="search-input"
                   type="text"
-                  placeholder="Search by name, address, or keywords..."
+                  placeholder={tt('directory.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
-                  className="bf-input pl-12 w-full"
+                  className="bf-input bf-input--icon-left w-full"
                 />
               </div>
             </div>
@@ -236,7 +248,7 @@ const Directory = () => {
             {/* Filter Dropdown */}
             <div className="w-full md:w-auto">
               <label htmlFor="filter-by" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                Filter By Category
+                {tt('directory.filterByCategory')}
               </label>
               <select
                 onChange={(e) => setFilter(e.target.value)}
@@ -244,7 +256,7 @@ const Directory = () => {
                 value={filter}
                 className="bf-input min-w-[200px]"
               >
-                <option value="">All Categories</option>
+                <option value="">{tt('directory.allCategories')}</option>
                 <option value="restaurant">Restaurants</option>
                 <option value="cafe">Cafes</option>
                 <option value="bar">Bars</option>
@@ -262,7 +274,7 @@ const Directory = () => {
                 <option value="gas_station">Gas Stations</option>
                 <option value="lodging">Hotels</option>
                 {isAuthenticated && <option value="bookmarks">⭐ My Bookmarked Businesses</option>}
-                <option value="custom">Custom Search...</option>
+                <option value="custom">{tt('directory.customSearch')}</option>
               </select>
             </div>
 
@@ -272,7 +284,7 @@ const Directory = () => {
               disabled={isSearching || (filter === 'custom' && !searchQuery.trim())}
               className="bf-button-primary whitespace-nowrap"
             >
-              {isSearching ? 'Searching…' : 'Search'}
+              {isSearching ? tt('directory.searching') : tt('common.search')}
             </button>
           </div>
 
@@ -280,13 +292,13 @@ const Directory = () => {
           {filter === "custom" && (
             <div className="mt-4 pt-4 border-t border-slate-300 dark:border-slate-700">
               <label htmlFor="custom-query" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                Custom Search Query
+                {tt('directory.customQuery')}
               </label>
               <div className="flex gap-2">
                 <input
                   id="custom-query"
                   type="text"
-                  placeholder='e.g. "pizza near Seattle" or "123 Main St"'
+                  placeholder={tt('directory.customQueryPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bf-input flex-1"
@@ -296,7 +308,7 @@ const Directory = () => {
                   disabled={!searchQuery.trim() || isSearching}
                   className="bf-button-primary"
                 >
-                  {isSearching ? "Searching..." : "Search"}
+                  {isSearching ? tt('directory.searching') : tt('common.search')}
                 </button>
               </div>
             </div>
@@ -308,7 +320,7 @@ const Directory = () => {
           {loading ? (
             <div className="bf-card p-12 text-center w-full" style={{ minHeight: 420 }}>
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-              <p className="mt-4 text-slate-600 dark:text-slate-400">Loading businesses...</p>
+              <p className="mt-4 text-slate-600 dark:text-slate-400">{tt('directory.loadingBusinesses')}</p>
             </div>
           ) : error ? (
             <div className="bf-card p-6 bg-red-900/20 border-red-500/50 w-full" style={{ minHeight: 420 }}>
@@ -316,13 +328,16 @@ const Directory = () => {
             </div>
           ) : listings.length === 0 ? (
             <div className="bf-card p-12 text-center w-full" style={{ minHeight: 420 }}>
-              <p className="text-slate-700 dark:text-slate-300 text-lg">No businesses found</p>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">Try adjusting your search or filter criteria</p>
+              <p className="text-slate-700 dark:text-slate-300 text-lg">{tt('directory.noBusinessesFound')}</p>
+              <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">{tt('directory.tryAdjust')}</p>
             </div>
           ) : (
             <>
               <div className="mb-4 text-gray-600 dark:text-gray-400">
-                Found <span className="font-semibold text-slate-900 dark:text-white">{listings.length}</span> {listings.length === 1 ? 'business' : 'businesses'}
+                {tt('directory.found', {
+                  count: listings.length,
+                  noun: listings.length === 1 ? tt('directory.businessSingular') : tt('directory.businessPlural'),
+                })}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((business) => {
@@ -384,7 +399,7 @@ const Directory = () => {
 
                       {/* View Details Link */}
                       <div className="text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
-                        View Details →
+                        {tt('directory.viewDetails')}
                       </div>
                     </div>
                   )

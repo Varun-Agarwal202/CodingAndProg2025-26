@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../context/AuthContext'
+import { useT } from '../utils/useT'
 
 const Navbar = () => {
   const [isDark, setIsDark] = useState(false)
   const navigate = useNavigate()
+  const { isAuthenticated, logout } = useContext(AuthContext)
+  const tt = useT()
 
   useEffect(() => {
     const localTheme = localStorage.getItem('color-theme')
@@ -47,10 +51,17 @@ const Navbar = () => {
 
         <div className="flex md:order-2 space-x-3">
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => {
+              if (isAuthenticated) {
+                logout()
+                navigate('/')
+              } else {
+                navigate('/signup')
+              }
+            }}
             className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-4 py-2 dark:bg-sky-600 dark:hover:bg-sky-700"
           >
-            Get started
+            {isAuthenticated ? tt('nav.logout') : tt('nav.getStarted')}
           </button>
 
           <button
@@ -77,22 +88,27 @@ const Navbar = () => {
           <ul className="flex flex-col md:flex-row md:space-x-8 font-medium">
             <li>
               <button onClick={() => navigate('/')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-                Home
+                {tt('nav.home')}
               </button>
             </li>
             <li>
               <button onClick={() => navigate('/about')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-                About
+                {tt('nav.about')}
+              </button>
+            </li>
+            <li>
+              <button onClick={() => navigate('/services')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
+                {tt('nav.services')}
               </button>
             </li>
             <li>
               <button onClick={() => navigate('/directory')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-                Directory
+                {tt('nav.directory')}
               </button>
             </li>
             <li>
               <button onClick={() => navigate('/contact')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-                Contact
+                {tt('nav.contact')}
               </button>
             </li>
           </ul>

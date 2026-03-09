@@ -36,6 +36,29 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+/* Accessibility: font size scaling */
+html[data-font-size="small"] { font-size: 14px; }
+html[data-font-size="medium"] { font-size: 16px; }
+html[data-font-size="large"] { font-size: 18px; }
+html[data-font-size="extraLarge"] { font-size: 20px; }
+
+/* Accessibility: high contrast mode */
+html.high-contrast {
+  --bg-surface: #000000;
+  --bg-elevated: #000000;
+  --border-subtle: rgba(255, 255, 255, 0.85);
+  --accent: #facc15;
+  --accent-soft: rgba(250, 204, 21, 0.25);
+  --accent-strong: #eab308;
+  --text-main: #ffffff;
+  --text-muted: #ffffff;
+}
+
+html.high-contrast body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
 :root[data-theme="light"] body {
   background: #ffffff;
   color: #0f172a;
@@ -137,6 +160,10 @@ button {
   font-size: 0.9375rem;
   transition: all 0.2s ease;
   outline: none;
+}
+
+.bf-input--icon-left {
+  padding-left: 3rem;
 }
 
 .bf-input:focus {

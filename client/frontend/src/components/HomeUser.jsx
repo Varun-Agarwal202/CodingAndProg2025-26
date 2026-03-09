@@ -6,20 +6,35 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBookmark } from '@fortawesome/free-solid-svg-icons'
 import { AuthContext } from '../context/AuthContext';
 import LoginPromptModal from './LoginPromptModal';
+import { useT } from '../utils/useT';
 
 const DEFAULT_LOCATION = { latitude: 51.5074, longitude: -0.1278 };
 
 const HomeUser = () => {
+  const tt = useT();
   const [userLocation, setUserLocation] = useState(null);
+  const [manualLocation, setManualLocation] = useState(() => {
+    const stored = localStorage.getItem('manualLocation');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [manualLocationAddress, setManualLocationAddress] = useState(() => {
+    return localStorage.getItem('manualLocationAddress') || '';
+  });
+  const [showManualLocationInput, setShowManualLocationInput] = useState(false);
+  const [manualLocationInput, setManualLocationInput] = useState('');
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [nearbyBusinesses, setNearbyBusinesses] = useState([]);
-  const [radius, setRadius] = useState(5);
+  const [radius, setRadius] = useState(() => {
+    const stored = localStorage.getItem('userRadius');
+    return stored ? Number(stored) : 10;
+  });
   const [locationError, setLocationError] = useState(null);
 
   // computed effective location:
-  // prefer live userLocation, fall back to stored userLocation (if any), otherwise null
-  const effectiveLocation = userLocation ?? (() => {
+  // prefer manual location, then live userLocation, then stored userLocation (if any)
+  const effectiveLocation = manualLocation ?? userLocation ?? (() => {
     const stored = localStorage.getItem('userLocation');
     if (!stored) return null;
     try { return JSON.parse(stored); } catch { return null; }
@@ -67,6 +82,47 @@ const HomeUser = () => {
 
   const navigate = useNavigate();
 
+  const geocodeAddress = async (address) => {
+    if (!address.trim()) return null;
+    setIsGeocoding(true);
+    setLocationError(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/geocode/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: address.trim() }),
+      });
+      const data = await response.json();
+      if (data.success && data.latitude && data.longitude) {
+        const coords = { latitude: data.latitude, longitude: data.longitude };
+        setManualLocation(coords);
+        setManualLocationAddress(data.formatted_address || address);
+        localStorage.setItem('manualLocation', JSON.stringify(coords));
+        localStorage.setItem('manualLocationAddress', data.formatted_address || address);
+        window.dispatchEvent(new CustomEvent('manualLocationChanged', { detail: { location: coords } }));
+        setShowManualLocationInput(false);
+        setManualLocationInput('');
+        return coords;
+      }
+      setLocationError(data.error || `Could not find location: ${data.status || 'Unknown error'}`);
+      return null;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setLocationError('Error looking up address. Please check your connection and try again.');
+      return null;
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const clearManualLocation = () => {
+    setManualLocation(null);
+    setManualLocationAddress('');
+    localStorage.removeItem('manualLocation');
+    localStorage.removeItem('manualLocationAddress');
+    window.dispatchEvent(new CustomEvent('manualLocationChanged', { detail: { location: null } }));
+  };
+
   const requestLocation = () => {
     setLocationError(null);
     if (!navigator.geolocation) {
@@ -94,14 +150,6 @@ const HomeUser = () => {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("userLocation");
-    if (stored) {
-      try {
-        setUserLocation(JSON.parse(stored));
-      } catch (_) {}
-      setLoading(false);
-      return;
-    }
     requestLocation();
   }, []);
 
@@ -109,16 +157,16 @@ const HomeUser = () => {
   // if userLocation exists, use it; otherwise, only use DEFAULT_LOCATION after
   // a location attempt has completed (loading === false)
   useEffect(() => {
-    const locToUse = userLocation ?? null;
+    const locToUse = effectiveLocation ?? null;
     if (locToUse) {
       getNearby(locToUse);
       return;
     }
     // if we've finished trying to get location and none available, use default
-    if (!loading && !userLocation) {
+    if (!loading && !effectiveLocation) {
       getNearby(DEFAULT_LOCATION);
     }
-  }, [userLocation, loading, filter, radius]);
+  }, [effectiveLocation, loading, filter, radius]);
 
   // updated: accept optional text query (uses Places Text Search when provided)
   const getNearby = async (location = effectiveLocation, { query } = {}) => {
@@ -196,9 +244,29 @@ const HomeUser = () => {
     <div className="space-y-6 w-full min-w-0">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 md:gap-4">
+        <button
+          type="button"
+          onClick={() => setShowManualLocationInput(true)}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-slate-600 bg-slate-900/60 text-sm text-slate-100 hover:border-sky-500/70 transition-colors"
+          title="Set a custom location"
+        >
+          {manualLocationAddress ? `Location: ${manualLocationAddress}` : tt('map.setLocation')}
+        </button>
+
+        {manualLocation && (
+          <button
+            type="button"
+            onClick={clearManualLocation}
+            className="inline-flex items-center gap-1 px-2 py-2 rounded-md border border-slate-600 bg-slate-900/60 text-xs text-slate-200 hover:bg-slate-900/80 transition-colors"
+            title="Clear manual location"
+          >
+            {tt('map.clear')}
+          </button>
+        )}
+
         <div className="flex items-center gap-2">
           <label htmlFor="business-type" className="text-xs font-medium text-slate-300 uppercase tracking-wide">
-            Type
+            {tt('map.type')}
           </label>
           <select
             onChange={(e) => setFilter(e.target.value)}
@@ -223,7 +291,7 @@ const HomeUser = () => {
             <option value="post_office">Post Offices</option>
             <option value="gas_station">Gas Stations</option>
             <option value="lodging">Hotels</option>
-            <option value="custom">Custom text query…</option>
+            <option value="custom">{tt('map.customTextQuery')}</option>
           </select>
         </div>
 
@@ -241,19 +309,25 @@ const HomeUser = () => {
               disabled={!searchQuery.trim() || isSearching}
               className="inline-flex items-center rounded-md bg-sky-500 px-3 py-2 text-xs font-medium text-slate-950 hover:bg-sky-400 disabled:opacity-70"
             >
-              {isSearching ? 'Searching…' : 'Search'}
+              {isSearching ? tt('map.searching') : tt('map.search')}
             </button>
           </div>
         )}
 
         <div className="flex items-center gap-2">
           <label htmlFor="radius" className="text-xs font-medium text-slate-300 uppercase tracking-wide">
-            Radius (km)
+            {tt('map.radiusKm')}
           </label>
           <input
             type="text"
             id="radius"
-            onChange={(e) => setRadius(Number(e.target.value))}
+            value={radius}
+            onChange={(e) => {
+              const newRadius = Number(e.target.value);
+              setRadius(newRadius);
+              localStorage.setItem('userRadius', newRadius.toString());
+              window.dispatchEvent(new CustomEvent('radiusChanged', { detail: { radius: newRadius } }));
+            }}
             className="w-20 rounded-md border border-slate-600 bg-slate-900/60 px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
           />
         </div>
@@ -282,7 +356,7 @@ const HomeUser = () => {
                     onClick={requestLocation}
                     className="px-3 py-1.5 rounded-md bg-sky-500 text-xs font-medium text-slate-950 hover:bg-sky-400"
                   >
-                    Use my location
+                    {tt('map.useMyLocation')}
                   </button>
                 )}
               </div>
@@ -305,11 +379,11 @@ const HomeUser = () => {
             </div>
           ) : loading ? (
             <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
-              Getting your location…
+              {tt('map.gettingLocation')}
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
-              Location not available.
+              {tt('map.locationNotAvailable')}
             </div>
           )}
         </div>
@@ -319,7 +393,7 @@ const HomeUser = () => {
           style={{ width: '100%', minHeight: 420, height: 420 }}
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-100">Nearby businesses</h3>
+            <h3 className="text-sm font-semibold text-slate-100">{tt('map.nearbyBusinesses')}</h3>
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <label htmlFor="sort-dropdown">Sort by</label>
               <select
@@ -385,6 +459,76 @@ const HomeUser = () => {
       </div>
 
       <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+
+      {showManualLocationInput && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bf-card p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-100">{tt('map.locationPromptTitle')}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowManualLocationInput(false);
+                  setManualLocationInput('');
+                  setLocationError(null);
+                }}
+                className="text-slate-400 hover:text-slate-200 transition-colors"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="location-input" className="block text-sm font-medium text-slate-300 mb-2">{tt('map.locationPromptLabel')}</label>
+                <input
+                  id="location-input"
+                  type="text"
+                  value={manualLocationInput}
+                  onChange={(e) => setManualLocationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isGeocoding) {
+                      geocodeAddress(manualLocationInput);
+                    }
+                  }}
+                  placeholder={tt('map.locationPromptPlaceholder')}
+                  className="bf-input w-full"
+                  disabled={isGeocoding}
+                />
+              </div>
+
+              {locationError && (
+                <div className="text-sm text-amber-300 bg-amber-950/30 border border-amber-800/60 rounded-md p-2">
+                  {locationError}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => geocodeAddress(manualLocationInput)}
+                  disabled={!manualLocationInput.trim() || isGeocoding}
+                  className="bf-button-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGeocoding ? tt('map.locationLookup') : tt('map.setLocationAction')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowManualLocationInput(false);
+                    setManualLocationInput('');
+                    setLocationError(null);
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-600/80 bg-slate-900/40 px-4 py-2 text-sm font-medium text-slate-100 hover:border-sky-500/80 transition-colors"
+                >
+                  {tt('common.cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

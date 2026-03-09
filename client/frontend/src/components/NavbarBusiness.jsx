@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { useT } from '../utils/useT';
 
 const NavbarBusiness = () => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const [isDark, setIsDark] = useState(false);
+  const tt = useT()
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -42,8 +44,8 @@ const NavbarBusiness = () => {
       <div className="max-w-screen-xl flex items-center justify-between mx-auto p-4">
         <button onClick={() => navigate('/')} className="text-2xl font-semibold dark:text-white">BusinessFinder</button>
         <div className="flex gap-3 items-center">
-          <Link to="/business/dashboard" className="py-2 px-3 text-gray-700 dark:text-gray-300">Dashboard</Link>
-          <Link to="/directory" className="py-2 px-3 text-gray-700 dark:text-gray-300">Directory</Link>
+          <Link to="/business/dashboard" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.dashboard')}</Link>
+          <Link to="/directory" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.directory')}</Link>
           <button 
             type="button" 
             onClick={toggleTheme} 
@@ -60,7 +62,7 @@ const NavbarBusiness = () => {
               </svg>
             )}
           </button>
-          <button onClick={handleLogout} className="text-white bg-blue-700 px-3 py-1 rounded dark:bg-blue-600 dark:hover:bg-blue-700">Log Out</button>
+          <button onClick={handleLogout} className="text-white bg-blue-700 px-3 py-1 rounded dark:bg-blue-600 dark:hover:bg-blue-700">{tt('nav.logout')}</button>
         </div>
       </div>
     </nav>

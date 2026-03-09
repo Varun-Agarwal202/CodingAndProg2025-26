@@ -1,12 +1,14 @@
 import React from 'react'
 import RootLayout from '../layouts/RootLayout'
+import { useT } from '../utils/useT'
 
 const Services = () => {
+  const tt = useT()
   return (
     <div className="min-h-screen flex flex-col">
       <RootLayout />
       <main className="bf-page-shell flex-1 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Our Services</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">{tt('services.title')}</h1>
         <p className="mt-4 text-lg text-slate-700 dark:text-slate-300">
           BusinessFinder helps you discover and support local businesses. Here’s what we offer.
         </p>

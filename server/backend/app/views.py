@@ -13,6 +13,54 @@ from .models import Business, Profile
 REQUEST_TIMEOUT = 8  # seconds
 
 @csrf_exempt
+@api_view(['POST'])
+def geocode(request):
+    """
+    POST { address: string } -> { success, latitude, longitude, formatted_address }
+    Uses Google Geocoding API with GOOGLE_PLACES_API_KEY.
+    """
+    data = request.data or {}
+    address = (data.get('address') or '').strip()
+    if not address:
+        return JsonResponse({'success': False, 'error': 'address required'}, status=400)
+
+    api_key = getattr(settings, 'GOOGLE_PLACES_API_KEY', None)
+    if not api_key:
+        return JsonResponse({'success': False, 'error': 'API key not configured'}, status=500)
+
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {'address': address, 'key': api_key}
+    try:
+        res = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+    except requests.RequestException as e:
+        return JsonResponse({'success': False, 'error': 'External API request failed', 'details': str(e)}, status=502)
+
+    if res.status_code != 200:
+        return JsonResponse({'success': False, 'error': 'Geocoding API returned error', 'status_code': res.status_code}, status=502)
+
+    payload = res.json() or {}
+    status = payload.get('status')
+    results = payload.get('results') or []
+    if status != 'OK' or not results:
+        return JsonResponse({'success': False, 'error': 'Could not find location', 'status': status}, status=200)
+
+    top = results[0]
+    loc = ((top.get('geometry') or {}).get('location') or {})
+    lat = loc.get('lat')
+    lng = loc.get('lng')
+    formatted = top.get('formatted_address') or address
+
+    if lat is None or lng is None:
+        return JsonResponse({'success': False, 'error': 'Could not parse location', 'status': status}, status=200)
+
+    return JsonResponse({
+        'success': True,
+        'latitude': lat,
+        'longitude': lng,
+        'formatted_address': formatted,
+    })
+
+@csrf_exempt
 @api_view(['GET', 'POST'])
 def fetch_businesses(request):
     """

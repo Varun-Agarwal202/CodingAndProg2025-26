@@ -1,8 +1,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useT } from '../utils/useT'
 
 const LoginPromptModal = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
+  const tt = useT()
 
   if (!isOpen) return null
 
@@ -20,30 +22,30 @@ const LoginPromptModal = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bf-card p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-          Save bookmarks
+          {tt('modal.saveBookmarksTitle')}
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-          Please log in to save bookmarks. Don&apos;t have an account? Create one to get started.
+          {tt('modal.saveBookmarksDesc')}
         </p>
         <div className="flex gap-3">
           <button
             onClick={handleLogin}
             className="flex-1 bf-button-primary"
           >
-            Log in
+            {tt('auth.login')}
           </button>
           <button
             onClick={handleSignup}
             className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 font-medium text-sm hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-sky-500/10 transition-colors"
           >
-            Create account
+            {tt('auth.signup')}
           </button>
         </div>
         <button
           onClick={onClose}
           className="mt-4 w-full text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
         >
-          Cancel
+          {tt('common.cancel')}
         </button>
       </div>
     </div>

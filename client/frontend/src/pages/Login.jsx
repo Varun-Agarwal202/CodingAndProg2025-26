@@ -6,9 +6,11 @@ import { redirect } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react'
 import { AuthContext } from '../context/AuthContext'
+import { useT } from '../utils/useT'
 
 const Login = () => {
   const navigate = useNavigate();
+  const tt = useT()
   const [formData, setFormData] = useState({
           username: "",
           password: "",
@@ -64,11 +66,11 @@ const Login = () => {
       localStorage.setItem('role', resolvedRole);
     }
     localStorage.setItem("user", JSON.stringify(userData));
-    setSuccess("Logged in successfully!");
+    setSuccess(tt('login.success'));
     navigate('/');
   } catch (err) {
     console.error("Login error:", err.response?.data);
-    setError("Login failed");
+    setError(tt('login.failed'));
   }
 };
   return (
@@ -80,37 +82,36 @@ const Login = () => {
           <section className="space-y-6 text-left">
             <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium text-sky-600 dark:text-sky-300 bf-pill">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-              Welcome back to BusinessFinder
+              {tt('login.badge')}
             </span>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              Sign in to discover and support
-              <span className="text-sky-400"> local businesses</span>.
+              {tt('login.titleA')}
+              <span className="text-sky-400">{tt('login.titleB')}</span>.
             </h1>
             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl">
-              Continue exploring nearby spots, managing bookmarks, and staying connected
-              with the businesses that matter in your community.
+              {tt('login.subtitle')}
             </p>
           </section>
 
           {/* Right: Auth card */}
             <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8">
             <header className="mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">Log in</h2>
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">{tt('login.cardTitle')}</h2>
                 <p className="mt-1.5 text-xs md:text-sm text-slate-600 dark:text-slate-400">
-                Enter your credentials to access your BusinessFinder account.
+                {tt('login.cardSubtitle')}
               </p>
             </header>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2 text-left">
                 <label htmlFor="username" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                  Username
+                  {tt('auth.username')}
                 </label>
                 <input
                   id="username"
                   type="text"
                   name="username"
-                  placeholder="Enter your username"
+                  placeholder={tt('login.usernamePlaceholder')}
                   value={formData.username}
                   onChange={handleChange}
                   required
@@ -120,13 +121,13 @@ const Login = () => {
 
               <div className="space-y-2 text-left">
                 <label htmlFor="password" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                  Password
+                  {tt('auth.password')}
                 </label>
                 <input
                   id="password"
                   type="password"
                   name="password"
-                  placeholder="Enter your password"
+                  placeholder={tt('login.passwordPlaceholder')}
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -149,18 +150,18 @@ const Login = () => {
                 type="submit"
                 className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-sm hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 focus-visible:ring-offset-slate-950 transition-colors"
               >
-                Log in
+                {tt('login.submit')}
               </button>
             </form>
 
             <p className="mt-5 text-xs text-slate-400 text-center">
-              Don&apos;t have an account?{' '}
+              {tt('login.noAccount')}{' '}
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
                 className="font-medium text-sky-500 dark:text-sky-400 hover:text-sky-400 dark:hover:text-sky-300 underline underline-offset-4"
               >
-                Create one
+                {tt('login.createOne')}
               </button>
             </p>
           </section>

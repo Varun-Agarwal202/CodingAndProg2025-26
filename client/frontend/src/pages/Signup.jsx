@@ -2,10 +2,12 @@ import React, { useState, useContext } from 'react';
 import RootLayout from '../layouts/RootLayout';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useT } from '../utils/useT';
 
 export default function Signup ()  {
     const navigate = useNavigate();
     const { setIsAuthenticated, setUser, setRole } = useContext(AuthContext);
+    const tt = useT();
 
     const [formData, setFormData] = useState({
         username: "",
@@ -119,37 +121,36 @@ export default function Signup ()  {
             <section className="space-y-6 text-left">
               <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium bf-pill text-slate-900 dark:text-slate-100">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Join the BusinessFinder community
+                {tt('signup.badge')}
               </span>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                Create an account to explore
-                <span className="text-sky-500 dark:text-sky-400"> local favorites</span>.
+                {tt('signup.titleA')}
+                <span className="text-sky-500 dark:text-sky-400">{tt('signup.titleB')}</span>.
               </h1>
               <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl">
-                Whether you&apos;re discovering new spots or representing your own business,
-                BusinessFinder helps connect you with your local community.
+                {tt('signup.subtitle')}
               </p>
             </section>
 
             {/* Right: Signup card */}
             <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8">
               <header className="mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">Sign up</h2>
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">{tt('signup.cardTitle')}</h2>
                 <p className="mt-1.5 text-xs md:text-sm text-slate-600 dark:text-slate-400">
-                  Fill in your details to get started. You can sign up as a regular user or a business.
+                  {tt('signup.cardSubtitle')}
                 </p>
               </header>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2 text-left">
                   <label htmlFor="username" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                    Username
+                    {tt('auth.username')}
                   </label>
                   <input
                     id="username"
                     type="text"
                     name="username"
-                    placeholder="Choose a username"
+                    placeholder={tt('signup.usernamePlaceholder')}
                     value={formData.username}
                     onChange={handleChange}
                     required
@@ -159,13 +160,13 @@ export default function Signup ()  {
 
                 <div className="space-y-2 text-left">
                   <label htmlFor="email" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                    Email
+                    {tt('auth.email')}
                   </label>
                   <input
                     id="email"
                     type="email"
                     name="email"
-                    placeholder="you@example.com"
+                    placeholder={tt('signup.emailPlaceholder')}
                     value={formData.email}
                     onChange={handleChange}
                     required
@@ -176,13 +177,13 @@ export default function Signup ()  {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2 text-left">
                     <label htmlFor="password1" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                      Password
+                      {tt('auth.password')}
                     </label>
                     <input
                       id="password1"
                       type="password"
                       name="password1"
-                      placeholder="Create a password"
+                      placeholder={tt('signup.passwordPlaceholder')}
                       value={formData.password1}
                       onChange={handleChange}
                       required
@@ -192,13 +193,13 @@ export default function Signup ()  {
 
                   <div className="space-y-2 text-left">
                     <label htmlFor="password2" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                      Confirm password
+                      {tt('signup.confirmPassword')}
                     </label>
                     <input
                       id="password2"
                       type="password"
                       name="password2"
-                      placeholder="Repeat password"
+                      placeholder={tt('signup.confirmPasswordPlaceholder')}
                       value={formData.password2}
                       onChange={handleChange}
                       required
@@ -209,7 +210,7 @@ export default function Signup ()  {
 
                 <div className="space-y-2 text-left">
                   <label htmlFor="role" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                    Account type
+                    {tt('signup.accountType')}
                   </label>
                   <select
                     id="role"
@@ -218,8 +219,8 @@ export default function Signup ()  {
                     onChange={handleChange}
                     className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
-                    <option value="user">User – discover local businesses</option>
-                    <option value="business">Business – showcase your place</option>
+                    <option value="user">{tt('signup.accountUser')}</option>
+                    <option value="business">{tt('signup.accountBusiness')}</option>
                   </select>
                 </div>
 
@@ -239,18 +240,18 @@ export default function Signup ()  {
                   type="submit"
                   disabled={submitting}
                 >
-                  {submitting ? 'Signing up…' : 'Sign up'}
+                  {submitting ? tt('signup.submitting') : tt('signup.submit')}
                 </button>
               </form>
 
               <p className="mt-5 text-xs text-slate-400 text-center">
-                Already have an account?{' '}
+                {tt('signup.haveAccount')}{' '}
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
                   className="font-medium text-sky-500 dark:text-sky-400 hover:text-sky-400 dark:hover:text-sky-300 underline underline-offset-4"
                 >
-                  Log in
+                  {tt('signup.loginLink')}
                 </button>
               </p>
             </section>
