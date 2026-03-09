@@ -1,6 +1,5 @@
-import React, { useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-import Navbar from '../components/Navbar';
+import React, { useState, useContext } from 'react';
+import RootLayout from '../layouts/RootLayout';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -23,14 +22,7 @@ export default function Signup ()  {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        // log the immediate event values (reliable)
-        console.log('heyyyyw', name, value);
     };
-
-    // log when formData actually updates
-    useEffect(() => {
-        console.log('formData updated', formData);
-    }, [formData]);
 
     function getCookie(name) {
         const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -57,7 +49,8 @@ export default function Signup ()  {
             });
             if (!reg.ok) {
                 const err = await reg.json().catch(() => ({ detail: reg.statusText }));
-                throw new Error(err.detail || "Registration failed");
+                const msg = err.detail || err.error || (reg.status === 500 ? "Server error. Please try again." : "Registration failed");
+                throw new Error(Array.isArray(msg) ? msg.join(" ") : msg);
             }
 
             // try to login the new user so /auth/user/ reflects the new account
@@ -119,21 +112,20 @@ export default function Signup ()  {
     };
 
     return (
-      <div className="min-h-screen flex flex-col bg-transparent">
-        <Navbar />
+      <div className="min-h-screen flex flex-col">
+        <RootLayout />
         <main className="bf-page-shell flex-1 flex items-center justify-center">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-center w-full">
-            {/* Left: Hero copy */}
             <section className="space-y-6 text-left">
-              <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium text-emerald-300 bf-pill">
+              <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium bf-pill text-slate-900 dark:text-slate-100">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 Join the BusinessFinder community
               </span>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-50">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 Create an account to explore
-                <span className="text-emerald-300"> local favorites</span>.
+                <span className="text-sky-500 dark:text-sky-400"> local favorites</span>.
               </h1>
-              <p className="text-sm md:text-base text-slate-400 max-w-xl">
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl">
                 Whether you&apos;re discovering new spots or representing your own business,
                 BusinessFinder helps connect you with your local community.
               </p>
@@ -142,15 +134,15 @@ export default function Signup ()  {
             {/* Right: Signup card */}
             <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8">
               <header className="mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold text-slate-50">Sign up</h2>
-                <p className="mt-1.5 text-xs md:text-sm text-slate-400">
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">Sign up</h2>
+                <p className="mt-1.5 text-xs md:text-sm text-slate-600 dark:text-slate-400">
                   Fill in your details to get started. You can sign up as a regular user or a business.
                 </p>
               </header>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2 text-left">
-                  <label htmlFor="username" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                  <label htmlFor="username" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                     Username
                   </label>
                   <input
@@ -161,12 +153,12 @@ export default function Signup ()  {
                     value={formData.username}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="bf-input w-full"
                   />
                 </div>
 
                 <div className="space-y-2 text-left">
-                  <label htmlFor="email" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                  <label htmlFor="email" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                     Email
                   </label>
                   <input
@@ -177,13 +169,13 @@ export default function Signup ()  {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="bf-input w-full"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2 text-left">
-                    <label htmlFor="password1" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                    <label htmlFor="password1" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                       Password
                     </label>
                     <input
@@ -194,12 +186,12 @@ export default function Signup ()  {
                       value={formData.password1}
                       onChange={handleChange}
                       required
-                      className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="bf-input w-full"
                     />
                   </div>
 
                   <div className="space-y-2 text-left">
-                    <label htmlFor="password2" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                    <label htmlFor="password2" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                       Confirm password
                     </label>
                     <input
@@ -210,13 +202,13 @@ export default function Signup ()  {
                       value={formData.password2}
                       onChange={handleChange}
                       required
-                      className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="bf-input w-full"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2 text-left">
-                  <label htmlFor="role" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                  <label htmlFor="role" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                     Account type
                   </label>
                   <select
@@ -243,7 +235,7 @@ export default function Signup ()  {
                 )}
 
                 <button
-                  className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-sm hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-slate-950 transition-colors disabled:opacity-70"
+                  className="mt-1 bf-button-primary w-full disabled:opacity-70"
                   type="submit"
                   disabled={submitting}
                 >
@@ -256,7 +248,7 @@ export default function Signup ()  {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="font-medium text-emerald-300 hover:text-emerald-200 underline underline-offset-4"
+                  className="font-medium text-sky-500 dark:text-sky-400 hover:text-sky-400 dark:hover:text-sky-300 underline underline-offset-4"
                 >
                   Log in
                 </button>

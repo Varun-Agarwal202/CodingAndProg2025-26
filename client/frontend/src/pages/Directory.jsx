@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBookmark, faMapMarkerAlt, faStar, faSearch } from '@fortawesome/free-solid-svg-icons'
 import RootLayout from '../layouts/RootLayout'
 import { AuthContext } from '../context/AuthContext'
+import LoginPromptModal from '../components/LoginPromptModal'
 
 const Directory = () => {
   const navigate = useNavigate()
@@ -15,6 +16,31 @@ const Directory = () => {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
   const [bookmarkedIds, setBookmarkedIds] = useState([])
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+
+  const DEFAULT_LOC = { lat: 51.5074, lng: -0.1278 }
+
+  // Try to load saved location or request geolocation
+  useEffect(() => {
+    const stored = localStorage.getItem('userLocation')
+    if (stored) {
+      try {
+        const loc = JSON.parse(stored)
+        setUserLocation(loc)
+      } catch (_) {}
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
+          setUserLocation(loc)
+          localStorage.setItem('userLocation', JSON.stringify(loc))
+        },
+        () => {},
+        { enableHighAccuracy: false }
+      )
+    }
+  }, [])
 
   // Load bookmarks if authenticated
   useEffect(() => {
@@ -61,7 +87,6 @@ const Directory = () => {
         const json = await res.json()
         const placeIds = json.bookmarks || []
 
-        // fetch full business objects for each bookmarked place_id
         const businesses = await Promise.all(
           placeIds.map(async (pid) => {
             try {
@@ -81,16 +106,32 @@ const Directory = () => {
         return
       }
 
-      // normal search / filter via backend
-      const params = new URLSearchParams()
-      if (q) params.append('q', q)
-      if (type) params.append('type', type)
-      const url = `http://localhost:8000/api/businesses/${params.toString() ? `?${params.toString()}` : ''}`
+      // fetch from Google Places API (same as homepage map)
+      const loc = userLocation || DEFAULT_LOC
+      const lat = typeof loc.latitude !== 'undefined' ? loc.latitude : loc.lat
+      const lng = typeof loc.longitude !== 'undefined' ? loc.longitude : loc.lng
+      const body = {
+        lat: lat ?? DEFAULT_LOC.lat,
+        lng: lng ?? DEFAULT_LOC.lng,
+        radius: 10,
+      }
+      if (q) body.query = q
+      else if (type) body.type = type
 
-      const response = await fetch(url)
+      const response = await fetch('http://localhost:8000/api/nearby_businesses/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
-      setListings(data)
+      const raw = Array.isArray(data) ? data : (data.results || [])
+      // normalize Google Places format: vicinity -> address
+      const normalized = raw.map((b) => ({
+        ...b,
+        address: b.address || b.vicinity || '',
+      }))
+      setListings(normalized)
     } catch (err) {
       console.error('Failed to load listings', err)
       setError('Failed to load results')
@@ -106,7 +147,7 @@ const Directory = () => {
     getListings()
   }, [])
 
-  // react to filter changes (auto-load bookmarks or apply type)
+  // react to filter and location changes
   useEffect(() => {
     if (filter === 'bookmarks') {
       setIsSearching(true)
@@ -118,7 +159,7 @@ const Directory = () => {
       setIsSearching(true)
       getListings()
     }
-  }, [filter])
+  }, [filter, userLocation])
 
   const handleSearch = async () => {
     setIsSearching(true)
@@ -129,6 +170,11 @@ const Directory = () => {
 
   const addBookmark = async (placeId, e) => {
     e.stopPropagation()
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+
     const already = bookmarkedIds.includes(placeId)
     setBookmarkedIds(prev => (already ? prev.filter(id => id !== placeId) : [...prev, placeId]))
 
@@ -146,21 +192,20 @@ const Directory = () => {
     } catch (err) {
       console.error('Bookmark error:', err)
       setBookmarkedIds(prev => (already ? [...prev, placeId] : prev.filter(id => id !== placeId)))
-      if (!isAuthenticated) alert('Please log in to save bookmarks.')
     }
   }
 
   return (
     <div className="min-h-screen flex flex-col">
       <RootLayout />
-      <main className="bf-page-shell flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="bf-page-shell bf-page-shell--xwide flex-1 w-full">
+        <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ minHeight: 560 }}>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-sky-400 to-indigo-500 bg-clip-text text-transparent">
             Business Directory
           </h1>
-          <p className="text-gray-400">Discover and explore local businesses in your area</p>
+          <p className="text-slate-600 dark:text-slate-400">Discover and explore local businesses in your area</p>
         </div>
 
         {/* Search and Filter Section */}
@@ -168,7 +213,7 @@ const Directory = () => {
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
             {/* Search Input */}
             <div className="flex-1 w-full md:w-auto">
-              <label htmlFor="search-input" className="block text-sm font-medium mb-2 text-gray-300">
+              <label htmlFor="search-input" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
                 Search Businesses
               </label>
               <div className="relative">
@@ -183,14 +228,14 @@ const Directory = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
-                  className="bf-input pl-10 w-full"
+                  className="bf-input pl-12 w-full"
                 />
               </div>
             </div>
 
             {/* Filter Dropdown */}
             <div className="w-full md:w-auto">
-              <label htmlFor="filter-by" className="block text-sm font-medium mb-2 text-gray-300">
+              <label htmlFor="filter-by" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
                 Filter By Category
               </label>
               <select
@@ -224,7 +269,7 @@ const Directory = () => {
             {/* Search Button */}
             <button
               onClick={handleSearch}
-              disabled={isSearching || (!searchQuery.trim() && filter !== 'custom')}
+              disabled={isSearching || (filter === 'custom' && !searchQuery.trim())}
               className="bf-button-primary whitespace-nowrap"
             >
               {isSearching ? 'Searching…' : 'Search'}
@@ -233,8 +278,8 @@ const Directory = () => {
 
           {/* Custom text query input */}
           {filter === "custom" && (
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <label htmlFor="custom-query" className="block text-sm font-medium mb-2 text-gray-300">
+            <div className="mt-4 pt-4 border-t border-slate-300 dark:border-slate-700">
+              <label htmlFor="custom-query" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
                 Custom Search Query
               </label>
               <div className="flex gap-2">
@@ -258,21 +303,21 @@ const Directory = () => {
           )}
         </div>
 
-        {/* Results Section */}
-        <div>
+        {/* Results Section - fixed min height so layout doesn't jump when loading */}
+        <div className="w-full" style={{ minHeight: 480 }}>
           {loading ? (
-            <div className="bf-card p-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-gray-400">Loading businesses...</p>
+            <div className="bf-card p-12 text-center w-full" style={{ minHeight: 420 }}>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+              <p className="mt-4 text-slate-600 dark:text-slate-400">Loading businesses...</p>
             </div>
           ) : error ? (
-            <div className="bf-card p-6 bg-red-900/20 border-red-500/50">
+            <div className="bf-card p-6 bg-red-900/20 border-red-500/50 w-full" style={{ minHeight: 420 }}>
               <p className="text-red-400">{error}</p>
             </div>
           ) : listings.length === 0 ? (
-            <div className="bf-card p-12 text-center">
-              <p className="text-gray-400 text-lg">No businesses found</p>
-              <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filter criteria</p>
+            <div className="bf-card p-12 text-center w-full" style={{ minHeight: 420 }}>
+              <p className="text-slate-700 dark:text-slate-300 text-lg">No businesses found</p>
+              <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">Try adjusting your search or filter criteria</p>
             </div>
           ) : (
             <>
@@ -293,18 +338,16 @@ const Directory = () => {
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors flex-1 pr-2">
                           {business.name}
                         </h3>
-                        {isAuthenticated && (
-                          <button
-                            onClick={(e) => addBookmark(business.place_id, e)}
-                            className="text-gray-400 hover:text-yellow-400 transition-colors p-1"
-                            title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-                          >
-                            <FontAwesomeIcon 
-                              icon={faBookmark} 
-                              className={isBookmarked ? 'text-yellow-400' : ''}
-                            />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => addBookmark(business.place_id, e)}
+                          className="text-gray-400 hover:text-yellow-400 transition-colors p-1"
+                          title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                        >
+                          <FontAwesomeIcon 
+                            icon={faBookmark} 
+                            className={isBookmarked ? 'text-yellow-400' : ''}
+                          />
+                        </button>
                       </div>
 
                       {/* Address */}
@@ -352,6 +395,8 @@ const Directory = () => {
         </div>
         </div>
       </main>
+
+      <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
     </div>
   )
 }

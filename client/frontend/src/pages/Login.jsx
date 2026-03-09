@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import RootLayout from '../layouts/RootLayout';
 import { redirect } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react'
@@ -72,8 +72,8 @@ const Login = () => {
   }
 };
   return (
-    <div className="min-h-screen flex flex-col bg-transparent">
-      <Navbar />
+    <div className="min-h-screen flex flex-col">
+      <RootLayout />
       <main className="bf-page-shell flex-1 flex items-center justify-center">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-center w-full">
           {/* Left: Hero copy */}
@@ -103,7 +103,7 @@ const Login = () => {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2 text-left">
-                <label htmlFor="username" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <label htmlFor="username" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                   Username
                 </label>
                 <input
@@ -114,12 +114,12 @@ const Login = () => {
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="bf-input w-full"
                 />
               </div>
 
               <div className="space-y-2 text-left">
-                <label htmlFor="password" className="block text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <label htmlFor="password" className="block text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                   Password
                 </label>
                 <input
@@ -130,7 +130,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="bf-input w-full"
                 />
               </div>
 
@@ -158,7 +158,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
-                className="font-medium text-sky-300 hover:text-sky-200 underline underline-offset-4"
+                className="font-medium text-sky-500 dark:text-sky-400 hover:text-sky-400 dark:hover:text-sky-300 underline underline-offset-4"
               >
                 Create one
               </button>

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBookmark } from '@fortawesome/free-solid-svg-icons'
 import { AuthContext } from '../context/AuthContext';
+import LoginPromptModal from './LoginPromptModal';
 
 const DEFAULT_LOCATION = { latitude: 51.5074, longitude: -0.1278 };
 
@@ -27,8 +28,9 @@ const HomeUser = () => {
   const { isAuthenticated, user } = useContext(AuthContext);
   
   const [bookmarkedIds, setBookmarkedIds] = useState([]);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  // NEW: state for custom text query
+  // state for custom text query
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
@@ -155,11 +157,13 @@ const HomeUser = () => {
     return v ? v.pop() : '';
   }
 
-  // updated addBookmark that sends auth (token preferred) and updates UI per-user
   const addBookmark = async (placeId) => {
-    const already = bookmarkedIds.includes(placeId);
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
 
-    // optimistic UI update
+    const already = bookmarkedIds.includes(placeId);
     setBookmarkedIds(prev => (already ? prev.filter(id => id !== placeId) : [...prev, placeId]));
 
     const token = localStorage.getItem('authToken');
@@ -178,13 +182,9 @@ const HomeUser = () => {
       if (!res.ok) {
         throw new Error(`Bookmark request failed: ${res.status}`);
       }
-      const data = await res.json();
-      console.log('Bookmark response:', data);
     } catch (err) {
       console.error('Bookmark error:', err);
-      // revert optimistic change
       setBookmarkedIds(prev => (already ? [...prev, placeId] : prev.filter(id => id !== placeId)));
-      if (!isAuthenticated) alert('Please log in to save bookmarks.');
     }
   };
 
@@ -193,7 +193,7 @@ const HomeUser = () => {
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 md:gap-4">
         <div className="flex items-center gap-2">
@@ -259,12 +259,18 @@ const HomeUser = () => {
         </div>
       </div>
 
-      {/* Map + list */}
-      <div className="mt-2 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-start">
-        <div className="bf-card h-[380px] md:h-[420px] overflow-hidden">
+      {/* Map + list - fixed dimensions from first paint so nothing "grows" when data loads */}
+      <div
+        className="mt-2 w-full grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-stretch"
+        style={{ minHeight: 420 }}
+      >
+        <div
+          className="bf-card overflow-hidden flex flex-col"
+          style={{ width: '100%', minHeight: 420, height: 420 }}
+        >
           {center ? (
-            <div className="h-full w-full flex flex-col">
-              <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col flex-1 min-h-0 w-full">
+              <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <div className="text-xs text-slate-400">
                   {locationError
                     ? <span className="text-amber-300">{locationError}</span>
@@ -280,9 +286,13 @@ const HomeUser = () => {
                   </button>
                 )}
               </div>
-              <div className="flex-1 rounded-xl overflow-hidden">
+              <div className="flex-1 min-h-0 w-full rounded-xl overflow-hidden" style={{ minHeight: 320 }}>
                 <LoadScript googleMapsApiKey="AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ">
-                  <GoogleMap mapContainerStyle={{ height: "100%", width: "100%" }} center={center} zoom={15}>
+                  <GoogleMap
+                    mapContainerStyle={{ height: '100%', width: '100%', minHeight: 320 }}
+                    center={center}
+                    zoom={15}
+                  >
                     <Marker position={center} />
                     {nearbyBusinesses.map((business, index) =>
                       business.geometry?.location?.lat && business.geometry?.location?.lng ? (
@@ -294,17 +304,20 @@ const HomeUser = () => {
               </div>
             </div>
           ) : loading ? (
-            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+            <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
               Getting your location…
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+            <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
               Location not available.
             </div>
           )}
         </div>
 
-        <div className="bf-card h-[380px] md:h-[420px] p-4 flex flex-col">
+        <div
+          className="bf-card p-4 flex flex-col overflow-hidden"
+          style={{ width: '100%', minHeight: 420, height: 420 }}
+        >
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-100">Nearby businesses</h3>
             <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -370,6 +383,8 @@ const HomeUser = () => {
           </ul>
         </div>
       </div>
+
+      <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
     </div>
   );
 };

@@ -36,11 +36,11 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-white border-gray-200 dark:bg-gray-900">
+    <nav className="bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
         <button
           onClick={() => navigate('/')}
-          className="text-2xl font-semibold dark:text-white"
+          className="text-2xl font-semibold text-gray-900 dark:text-white"
         >
           BusinessFinder
         </button>
@@ -48,7 +48,7 @@ const Navbar = () => {
         <div className="flex md:order-2 space-x-3">
           <button
             onClick={() => navigate('/signup')}
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700"
+            className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-4 py-2 dark:bg-sky-600 dark:hover:bg-sky-700"
           >
             Get started
           </button>
@@ -76,22 +76,22 @@ const Navbar = () => {
         <div className="items-center justify-between hidden w-full md:flex md:w-auto md:order-1">
           <ul className="flex flex-col md:flex-row md:space-x-8 font-medium">
             <li>
-              <button onClick={() => navigate('/')} className="py-2 px-3 dark:text-white">
+              <button onClick={() => navigate('/')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
                 Home
               </button>
             </li>
             <li>
-              <button onClick={() => navigate('/about')} className="py-2 px-3 dark:text-white">
+              <button onClick={() => navigate('/about')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
                 About
               </button>
             </li>
             <li>
-              <button onClick={() => navigate('/directory')} className="py-2 px-3 dark:text-white">
+              <button onClick={() => navigate('/directory')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
                 Directory
               </button>
             </li>
             <li>
-              <button onClick={() => navigate('/contact')} className="py-2 px-3 dark:text-white">
+              <button onClick={() => navigate('/contact')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
                 Contact
               </button>
             </li>
