@@ -1,11 +1,72 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBookmark, faMapMarkerAlt, faStar, faSearch } from '@fortawesome/free-solid-svg-icons'
+import { faBookmark, faMapMarkerAlt, faStar, faSearch, faTag } from '@fortawesome/free-solid-svg-icons'
 import RootLayout from '../layouts/RootLayout'
 import { AuthContext } from '../context/AuthContext'
 import LoginPromptModal from '../components/LoginPromptModal'
 import { useT } from '../utils/useT'
+
+// Deterministic deals helper for directory cards, based on place_id or name
+const DEALS_BANK = [
+  '10% off your first visit',
+  'Buy one, get one 50% off',
+  'Free drink with entrée',
+  'Free dessert with two entrées',
+  'Kids eat free on Tuesdays',
+  'Happy hour: 20% off from 3–5pm',
+  'Free appetizer with main course',
+  'Loyalty card: buy 9, get 10th free',
+  'Student discount: 15% off with ID',
+  'Senior discount: 10% off on Wednesdays',
+  'Free gift with purchases over $50',
+  'Weekend special: 2-for-1 on select items',
+  'Early bird special: 15% off before 11am',
+  'Family bundle deal – save 25%',
+  'Free upgrade to large size',
+  'No delivery fee on orders over $25',
+  'Online-only discount: 10% off',
+  'Refer a friend & both get $5 off',
+  'Seasonal sale: up to 30% off',
+  'New customer coupon: $10 off',
+  'Bundle any 3 items & save 20%',
+  'Free sample pack with purchase',
+  'Birthday reward: free item of your choice',
+  'Flash sale: 15% off today only',
+  'Free consultation for new clients',
+  'Membership deal: extra 5% off',
+  'Buy 2 services, get 3rd half off',
+  'Complimentary upgrade on first booking',
+  'Free trial week for new members',
+  'Holiday special: bonus gift card',
+  'Neighborhood discount: 10% off',
+  'Book online & save 5%',
+  'Flat $5 off all orders over $20',
+  'Reward points: double points this month',
+  'Free eco-friendly tote with purchase',
+  'Lunch special: drink included',
+  'Morning coffee combo deal',
+  'After-school snack special',
+  'Midweek special: 2-for-1 tickets',
+]
+
+function getDealsForBusiness(business) {
+  const key = business.place_id || business.name || 'business'
+  let hash = 0
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0
+  }
+  const count = (hash % 8) + 1 // 1–8 deals
+  const deals = []
+  for (let i = 0; i < count; i += 1) {
+    const idx = (hash + i * 17) % DEALS_BANK.length
+    const deal = DEALS_BANK[idx]
+    if (!deals.includes(deal)) {
+      deals.push(deal)
+    }
+  }
+  return deals
+}
 
 const Directory = () => {
   const navigate = useNavigate()
@@ -342,6 +403,7 @@ const Directory = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((business) => {
                   const isBookmarked = bookmarkedIds.includes(business.place_id)
+                  const deals = getDealsForBusiness(business)
                   return (
                     <div
                       key={business.id || business.place_id}
@@ -396,6 +458,16 @@ const Directory = () => {
                           ))}
                         </div>
                       )}
+
+                      {/* Generic Deals */}
+                      <div className="mb-4 space-y-1">
+                        {deals.slice(0, 2).map((deal, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs text-emerald-400">
+                            <FontAwesomeIcon icon={faTag} />
+                            <span>{deal}</span>
+                          </div>
+                        ))}
+                      </div>
 
                       {/* View Details Link */}
                       <div className="text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">

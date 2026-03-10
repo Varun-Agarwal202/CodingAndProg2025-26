@@ -9,14 +9,20 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-from pathlib import Path
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Use absolute path to ensure Python finds it
+dotenv_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path, override=True)
 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if GEMINI_API_KEY is None:
+    print("WARNING: GEMINI_API_KEY not found!")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -28,9 +34,6 @@ DEBUG = True
 
 # WARNING: development-only placement of Google API key. Move to environment or .env for production.
 GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', 'AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ')
-
-# Gemini API key (MUST be set via environment, no default)
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 

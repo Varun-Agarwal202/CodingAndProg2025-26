@@ -1,5 +1,4 @@
-import React from 'react'
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import RootLayout from '../layouts/RootLayout';
 import { redirect } from 'react-router-dom';
@@ -18,6 +17,40 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { setIsAuthenticated, setUser, setRole } = useContext(AuthContext)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const recaptchaContainerRef = useRef(null);
+  const [recaptchaWidgetId, setRecaptchaWidgetId] = useState(null);
+
+  // Ensure the v2 checkbox widget is explicitly rendered and we track its widgetId.
+  useEffect(() => {
+    const renderRecaptcha = () => {
+      if (!window.grecaptcha || !recaptchaContainerRef.current) {
+        return;
+      }
+      try {
+        const id = window.grecaptcha.render(recaptchaContainerRef.current, {
+          sitekey: '6LeOcoUsAAAAAH6ymT1xEc6bXYvGpH3fDk4xb5Ut',
+        });
+        setRecaptchaWidgetId(id);
+      } catch (err) {
+        console.error('reCAPTCHA render error:', err);
+      }
+    };
+
+    if (window.grecaptcha && typeof window.grecaptcha.render === 'function') {
+      renderRecaptcha();
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      if (window.grecaptcha && typeof window.grecaptcha.render === 'function') {
+        clearInterval(intervalId);
+        renderRecaptcha();
+      }
+    }, 300);
+
+    return () => clearInterval(intervalId);
+  }, []);
   
   const handleChange = (e) => {
       setFormData({
@@ -30,11 +63,35 @@ const Login = () => {
   e.preventDefault();
   setError("");
   setSuccess("");
-  
+
+  if (
+    !window.grecaptcha ||
+    typeof window.grecaptcha.getResponse !== 'function' ||
+    recaptchaWidgetId === null
+  ) {
+    setError("reCAPTCHA is still loading. Please wait a moment and try again.");
+    return;
+  }
+
+  let recaptchaToken = "";
+  try {
+    recaptchaToken = window.grecaptcha.getResponse(recaptchaWidgetId);
+  } catch (err) {
+    console.error("reCAPTCHA getResponse error:", err);
+    setError("reCAPTCHA is not ready yet. Please wait a second and try again.");
+    return;
+  }
+  if (!recaptchaToken) {
+    setError("Please complete the reCAPTCHA.");
+    return;
+  }
+
+  setIsSubmitting(true);
+
   try {
     const res = await axios.post(
       'http://localhost:8000/auth/login/',
-      formData,
+      { ...formData, recaptcha_token: recaptchaToken },
       { headers: { 'Content-Type': 'application/json' } }
     );
     // Save the token first
@@ -69,8 +126,19 @@ const Login = () => {
     setSuccess(tt('login.success'));
     navigate('/');
   } catch (err) {
-    console.error("Login error:", err.response?.data);
-    setError(tt('login.failed'));
+    console.error("Login error:", err.response?.data || err);
+    const apiError = err.response?.data?.detail || tt('login.failed');
+    setError(apiError);
+  } finally {
+    setIsSubmitting(false);
+    // reset the widget so the user can retry
+    try {
+      if (window.grecaptcha && recaptchaWidgetId !== null) {
+        window.grecaptcha.reset(recaptchaWidgetId);
+      }
+    } catch (e) {
+      // ignore reset errors
+    }
   }
 };
   return (
@@ -135,6 +203,10 @@ const Login = () => {
                 />
               </div>
 
+              <div className="flex justify-start">
+                <div ref={recaptchaContainerRef} />
+              </div>
+
               {error && (
                 <p className="text-xs text-rose-400 bg-rose-950/50 border border-rose-800/60 rounded-md px-3 py-2">
                   {error}
@@ -148,9 +220,10 @@ const Login = () => {
 
               <button
                 type="submit"
-                className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-sm hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 focus-visible:ring-offset-slate-950 transition-colors"
+              disabled={isSubmitting}
+              className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-sm hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 focus-visible:ring-offset-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {tt('login.submit')}
+                {isSubmitting ? tt('login.submitting') || 'Signing in...' : tt('login.submit')}
               </button>
             </form>
 
