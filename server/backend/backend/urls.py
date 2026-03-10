@@ -16,9 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from app.views import CaptchaLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Override the default dj-rest-auth login to enforce reCAPTCHA
+    path('auth/login/', CaptchaLoginView.as_view(), name='captcha_login'),
     path('auth/', include('dj_rest_auth.urls')),
     path('auth/registration/', include('dj_rest_auth.registration.urls')),
 

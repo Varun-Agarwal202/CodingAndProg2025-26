@@ -29,6 +29,13 @@ DEBUG = True
 # WARNING: development-only placement of Google API key. Move to environment or .env for production.
 GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', 'AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ')
 
+# Google reCAPTCHA secret key (server-side).
+# In production, override via the RECAPTCHA_SECRET_KEY environment variable.
+RECAPTCHA_SECRET_KEY = os.environ.get(
+    'RECAPTCHA_SECRET_KEY',
+    '6LeOcoUsAAAAADE9IwBlOWKQuxqqE-w_Jat11lnk',
+)
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 REST_FRAMEWORK = {

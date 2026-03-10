@@ -4,6 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from dj_rest_auth.views import LoginView
 import requests
 from django.db.models import Q
 from django.db import connection
@@ -11,6 +14,53 @@ from django.http import JsonResponse
 from .models import Business, Profile
 
 REQUEST_TIMEOUT = 8  # seconds
+
+
+class CaptchaLoginView(LoginView):
+    """
+    Login view that enforces Google reCAPTCHA verification before authenticating.
+    """
+
+    def post(self, request, *args, **kwargs):
+        token = request.data.get("recaptcha_token")
+        if not token:
+            return Response(
+                {"detail": "reCAPTCHA verification is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        secret = getattr(settings, "RECAPTCHA_SECRET_KEY", "")
+        if not secret:
+            return Response(
+                {"detail": "reCAPTCHA secret key is not configured on the server."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        try:
+            verify_res = requests.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data={"secret": secret, "response": token},
+                timeout=REQUEST_TIMEOUT,
+            )
+        except requests.RequestException:
+            return Response(
+                {"detail": "reCAPTCHA verification failed. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        payload = verify_res.json() or {}
+        success = payload.get("success")
+        score = payload.get("score")
+        action = payload.get("action")
+
+        # For reCAPTCHA v3 you can additionally enforce score/action checks here.
+        if not success:
+            return Response(
+                {"detail": "reCAPTCHA validation failed. Please try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().post(request, *args, **kwargs)
 
 @csrf_exempt
 @api_view(['POST'])
@@ -237,6 +287,151 @@ def get_businesses(request):
 
     results = [b.return_dict() for b in queryset]
     return JsonResponse(results, safe=False)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def generate_report(request):
+    """
+    Generate a customizable data report over businesses.
+    Payload can include:
+      - mode: "directory" (default) or "business"
+      - place_id: optional, to scope to a single business
+      - type: optional Google Places type/category filter
+      - min_rating: optional minimum rating filter
+      - bookmarks_only: if true, restricts to user's bookmarked businesses
+      - limit: max number of businesses to include in lists (default 25)
+      - sort_by: "rating" (default) or "reviews"
+    """
+    data = request.data or {}
+    mode = (data.get('mode') or 'directory').lower()
+    place_id = data.get('place_id') or ''
+    type_filter = (data.get('type') or '').strip()
+    sort_by = (data.get('sort_by') or 'rating').lower()
+    bookmarks_only = bool(data.get('bookmarks_only'))
+    try:
+        min_rating = float(data.get('min_rating')) if data.get('min_rating') not in (None, '') else None
+    except (TypeError, ValueError):
+        min_rating = None
+
+    try:
+        limit = int(data.get('limit') or 25)
+    except (TypeError, ValueError):
+        limit = 25
+    limit = max(1, min(limit, 200))
+
+    qs = Business.objects.all()
+
+    if mode == 'business' and place_id:
+        qs = qs.filter(place_id=place_id)
+
+    if type_filter:
+        if connection.vendor == 'postgresql':
+            qs = qs.filter(types__contains=[type_filter])
+        else:
+            qs = qs.filter(types__icontains=type_filter)
+
+    if min_rating is not None:
+        qs = qs.filter(rating__gte=min_rating)
+
+    # Restrict to user's bookmarks if requested
+    if bookmarks_only:
+        profile = getattr(request.user, 'profile', None)
+        if profile is None:
+            return JsonResponse({'error': 'Profile not found for user.'}, status=400)
+        qs = qs.filter(bookmarked_by__in=[profile]).distinct()
+
+    total_businesses = qs.count()
+    if total_businesses == 0:
+        return JsonResponse({
+            'total_businesses': 0,
+            'average_rating': None,
+            'average_review_count': None,
+            'type_filter': type_filter,
+            'min_rating': min_rating,
+            'bookmarks_only': bookmarks_only,
+            'businesses': [],
+            'top_businesses': [],
+        })
+
+    # Aggregate stats
+    ratings = list(qs.values_list('rating', flat=True))
+    review_counts = list(qs.values_list('user_ratings_total', flat=True))
+    ratings_clean = [r for r in ratings if r is not None]
+    review_counts_clean = [c for c in review_counts if c is not None]
+
+    avg_rating = sum(ratings_clean) / len(ratings_clean) if ratings_clean else None
+    avg_reviews = sum(review_counts_clean) / len(review_counts_clean) if review_counts_clean else None
+
+    # Sort for "top businesses"
+    if sort_by == 'reviews':
+        ordered_queryset = qs.order_by('-user_ratings_total', '-rating')
+        ordered = list(ordered_queryset[:limit])
+    elif sort_by == 'deals':
+        # Sort in Python by number of deals derived from Business.get_deals()
+        ordered = sorted(qs, key=lambda b: len(b.get_deals()), reverse=True)[:limit]
+    else:
+        ordered_queryset = qs.order_by('-rating', '-user_ratings_total')
+        ordered = list(ordered_queryset[:limit])
+
+    top_businesses = [b.return_dict() for b in ordered]
+
+    return JsonResponse({
+        'total_businesses': total_businesses,
+        'average_rating': round(avg_rating, 2) if avg_rating is not None else None,
+        'average_review_count': round(avg_reviews, 2) if avg_reviews is not None else None,
+        'type_filter': type_filter,
+        'min_rating': min_rating,
+        'bookmarks_only': bookmarks_only,
+        'sort_by': sort_by,
+        'limit': limit,
+        'top_businesses': top_businesses,
+    })
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def add_review(request):
+    """
+    Append a user-submitted review to a Business and update its aggregate rating.
+    Expected payload: { place_id, rating (1-5), text }
+    """
+    place_id = request.data.get('place_id')
+    text = (request.data.get('text') or '').strip()
+    try:
+        rating = float(request.data.get('rating'))
+    except (TypeError, ValueError):
+        rating = None
+
+    if not place_id or not text or rating is None:
+        return JsonResponse({'error': 'place_id, text, and numeric rating are required.'}, status=400)
+
+    try:
+        business = Business.objects.get(place_id=place_id)
+    except Business.DoesNotExist:
+        return JsonResponse({'error': 'Business not found'}, status=404)
+
+    reviews = list(business.reviews or [])
+    new_review = {
+        'author_name': getattr(request.user, 'username', 'Anonymous'),
+        'rating': rating,
+        'text': text,
+        'source': 'user',
+    }
+    reviews.append(new_review)
+    business.reviews = reviews
+
+    # Update aggregate rating and total count
+    current_total = business.user_ratings_total or 0
+    current_rating = business.rating or 0
+    new_total = current_total + 1
+    business.rating = round(((current_rating * current_total) + rating) / new_total, 2)
+    business.user_ratings_total = new_total
+
+    business.save()
+    return JsonResponse(business.return_dict(), safe=False)
 
 
 @api_view(['GET', 'POST'])

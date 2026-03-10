@@ -46,6 +46,7 @@ const NavbarBusiness = () => {
         <div className="flex gap-3 items-center">
           <Link to="/business/dashboard" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.dashboard')}</Link>
           <Link to="/directory" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.directory')}</Link>
+          <Link to="/reports" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.reports')}</Link>
           <button 
             type="button" 
             onClick={toggleTheme} 

@@ -11,6 +11,7 @@ import BusinessPage from './pages/BusinessPage'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Services from './pages/Services'
+import Reports from './pages/Reports'
 
 function App() {
 
@@ -23,6 +24,7 @@ function App() {
       <Route path="/business/:id" element={<BusinessPage />} />
       <Route path="/about" element={<About />} />
       <Route path="/services" element={<Services />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="*" element={<h2>Page Not Found</h2>} />
     </Routes>
