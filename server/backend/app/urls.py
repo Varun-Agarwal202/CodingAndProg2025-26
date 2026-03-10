@@ -8,6 +8,7 @@ from .views import (
     get_businesses,
     my_profile,
     geocode,
+    ai_chat,
 )
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     path('businesses/', get_businesses, name='get_businesses'),
     path('user_bookmarks/', user_bookmarks, name='user_bookmarks'),
     path('my_profile/', my_profile, name='my_profile'),
+    path('ai_chat/', ai_chat, name='ai_chat'),
 ]

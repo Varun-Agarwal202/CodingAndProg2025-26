@@ -50,7 +50,7 @@ const AccessibilityToolbar = () => {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 z-50 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-4 shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+        className="fixed bottom-4 left-4 z-50 bg-sky-600 hover:bg-sky-700 text-white rounded-full p-4 shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
         aria-label={t('accessibility.title', language)}
         aria-expanded={isOpen}
       >
@@ -59,7 +59,7 @@ const AccessibilityToolbar = () => {
 
       {isOpen && (
         <div
-          className="fixed bottom-20 right-4 z-50 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl p-4 w-80 max-w-[calc(100vw-2rem)]"
+          className="fixed bottom-20 left-4 z-50 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl p-4 w-80 max-w-[calc(100vw-2rem)]"
           role="dialog"
           aria-labelledby="accessibility-title"
         >

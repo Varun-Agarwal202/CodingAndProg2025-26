@@ -262,3 +262,68 @@ def my_profile(request):
         profile.save()
         return JsonResponse({'success': True, 'role': profile.role})
     return JsonResponse({'error': 'invalid role'}, status=400)
+
+
+@csrf_exempt
+@api_view(['POST'])
+def ai_chat(request):
+    """
+    Simple AI helper backed by Gemini.
+    Expects JSON: { "message": "question text" }
+    """
+    data = request.data or {}
+    message = (data.get('message') or '').strip()
+    if not message:
+        return JsonResponse({'error': 'message required'}, status=400)
+
+    api_key = getattr(settings, 'GEMINI_API_KEY', None)
+    if not api_key:
+        return JsonResponse({'error': 'Gemini API key not configured'}, status=500)
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+
+    system_prompt = (
+        "You are the helper bot for BusinessFinder, a website that helps people discover local businesses "
+        "using Google Maps data. Answer questions about how to use the site, how bookmarking works, roles "
+        "(user vs business), and what the map / directory pages do. If asked things unrelated to the app, "
+        "answer briefly and politely but do not claim to perform actions in the real world."
+    )
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": system_prompt},
+                    {"text": f"\n\nUser question: {message}"}
+                ],
+            }
+        ]
+    }
+
+    try:
+        res = requests.post(
+            url,
+            params={"key": api_key},
+            json=payload,
+            timeout=REQUEST_TIMEOUT,
+        )
+    except requests.RequestException as e:
+        return JsonResponse({'error': 'Gemini request failed', 'details': str(e)}, status=502)
+
+    if res.status_code != 200:
+        return JsonResponse({'error': 'Gemini API error', 'status_code': res.status_code}, status=502)
+
+    body = res.json() or {}
+    try:
+        candidates = body.get("candidates") or []
+        first = candidates[0]
+        parts = (first.get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts)
+    except Exception:
+        text = ""
+
+    if not text:
+        text = "Sorry, I couldn't generate a response. Please try again."
+
+    return JsonResponse({"reply": text})

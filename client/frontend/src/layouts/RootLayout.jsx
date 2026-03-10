@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import { AuthContext } from '../context/AuthContext';
 import NavbarBusiness from '../components/NavbarBusiness'; // NEW
 import AccessibilityToolbar from '../components/AccessibilityToolbar';
+import AiChatWidget from '../components/AiChatWidget';
 
 const RootLayout = () => {
     const { isAuthenticated, role } = useContext(AuthContext);
@@ -12,6 +13,7 @@ const RootLayout = () => {
         <>
           <NavbarBusiness />
           <AccessibilityToolbar />
+          <AiChatWidget />
         </>
       )
     }
@@ -19,6 +21,7 @@ const RootLayout = () => {
       <>
         <Navbar />
         <AccessibilityToolbar />
+        <AiChatWidget />
       </>
     )
 }

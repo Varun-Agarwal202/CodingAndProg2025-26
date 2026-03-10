@@ -29,6 +29,9 @@ DEBUG = True
 # WARNING: development-only placement of Google API key. Move to environment or .env for production.
 GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', 'AIzaSyCoxkur1IMrFgWYnTrdWANhisU2VBM9HaQ')
 
+# Gemini API key (MUST be set via environment, no default)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 REST_FRAMEWORK = {
