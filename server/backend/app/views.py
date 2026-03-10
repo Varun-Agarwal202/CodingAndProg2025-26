@@ -1,3 +1,4 @@
+import logging
 from django.conf import settings
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -475,9 +476,10 @@ def ai_chat(request):
     if not api_key:
         return JsonResponse({'error': 'Gemini API key not configured'}, status=500)
 
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    # Use a model that supports v1beta generateContent (gemini-1.5-flash is deprecated)
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-    system_prompt = (
+    system_instruction = (
         "You are the helper bot for BusinessFinder, a website that helps people discover local businesses "
         "using Google Maps data. Answer questions about how to use the site, how bookmarking works, roles "
         "(user vs business), and what the map / directory pages do. If asked things unrelated to the app, "
@@ -485,15 +487,8 @@ def ai_chat(request):
     )
 
     payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {"text": system_prompt},
-                    {"text": f"\n\nUser question: {message}"}
-                ],
-            }
-        ]
+        "systemInstruction": {"parts": [{"text": system_instruction}]},
+        "contents": [{"role": "user", "parts": [{"text": message}]}],
     }
 
     try:
@@ -507,7 +502,18 @@ def ai_chat(request):
         return JsonResponse({'error': 'Gemini request failed', 'details': str(e)}, status=502)
 
     if res.status_code != 200:
-        return JsonResponse({'error': 'Gemini API error', 'status_code': res.status_code}, status=502)
+        try:
+            err_body = res.json()
+        except Exception:
+            err_body = res.text
+        # Log so you can see the real reason in the runserver terminal
+        logger = logging.getLogger(__name__)
+        logger.warning("Gemini API non-200: status=%s body=%s", res.status_code, err_body)
+        return JsonResponse({
+            'error': 'Gemini API error',
+            'status_code': res.status_code,
+            'details': err_body,
+        }, status=502)
 
     body = res.json() or {}
     try:

@@ -25,7 +25,13 @@ const AiChatWidget = () => {
       })
       const data = await res.json()
       if (!res.ok || !data.reply) {
-        throw new Error(data.error || 'Request failed')
+        const msg = data.error || 'Request failed'
+        const details = data.details
+        if (details != null) {
+          const detailStr = typeof details === 'string' ? details : JSON.stringify(details)
+          console.warn('AI chat backend error details:', detailStr)
+        }
+        throw new Error(msg)
       }
       setMessages((prev) => [...prev, { role: 'assistant', text: data.reply }])
     } catch (e) {

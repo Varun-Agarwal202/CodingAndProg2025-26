@@ -20,9 +20,12 @@ dotenv_path = os.path.join(BASE_DIR, ".env")
 load_dotenv(dotenv_path, override=True)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY")
 
 if GEMINI_API_KEY is None:
     print("WARNING: GEMINI_API_KEY not found!")
+if not RECAPTCHA_SECRET_KEY:
+    print("WARNING: RECAPTCHA_SECRET_KEY not found! Add it to .env for login reCAPTCHA.")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
