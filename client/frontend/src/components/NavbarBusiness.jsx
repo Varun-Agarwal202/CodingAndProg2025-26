@@ -47,6 +47,7 @@ const NavbarBusiness = () => {
           <Link to="/business/dashboard" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.dashboard')}</Link>
           <Link to="/directory" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.directory')}</Link>
           <Link to="/reports" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.reports')}</Link>
+          <Link to="/faq" className="py-2 px-3 text-gray-700 dark:text-gray-300">{tt('nav.faq')}</Link>
           <button 
             type="button" 
             onClick={toggleTheme} 
@@ -71,3 +72,4 @@ const NavbarBusiness = () => {
 };
 
 export default NavbarBusiness;
+

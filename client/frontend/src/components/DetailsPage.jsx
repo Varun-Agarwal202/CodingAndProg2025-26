@@ -9,6 +9,7 @@ const DetailsPage = ({ data }) => {
   const { isAuthenticated } = useContext(AuthContext)
   const [reviewText, setReviewText] = useState('')
   const [reviewRating, setReviewRating] = useState('')
+  const [isHumanVerified, setIsHumanVerified] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [submitSuccess, setSubmitSuccess] = useState('')
   const [localData, setLocalData] = useState(data || null)
@@ -29,6 +30,11 @@ const DetailsPage = ({ data }) => {
 
     if (!reviewText.trim() || !reviewRating) {
       setSubmitError(tt('details.reviewRequired') || 'Please enter a review and rating.')
+      return
+    }
+
+    if (!isHumanVerified) {
+      setSubmitError(tt('details.humanCheckRequired') || 'Please confirm you are human.')
       return
     }
 
@@ -56,6 +62,7 @@ const DetailsPage = ({ data }) => {
       setLocalData(updated)
       setReviewText('')
       setReviewRating('')
+      setIsHumanVerified(false)
       setSubmitSuccess(tt('details.reviewSubmitted') || 'Review submitted!')
     } catch (err) {
       console.error('Review submit error:', err)
@@ -348,9 +355,22 @@ const DetailsPage = ({ data }) => {
                   <option value="5">5 - Excellent</option>
                 </select>
               </div>
+              <div className="mb-4">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={isHumanVerified}
+                    onChange={(e) => setIsHumanVerified(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  {tt('details.humanCheckLabel')}
+                </label>
+                <p className="mt-1 text-xs text-gray-500">{tt('details.humanCheckHelp')}</p>
+              </div>
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                disabled={!isHumanVerified}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {tt('details.submitReview')}
               </button>
@@ -369,3 +389,8 @@ const DetailsPage = ({ data }) => {
 }
 
 export default DetailsPage;
+
+
+
+
+

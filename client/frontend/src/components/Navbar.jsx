@@ -97,8 +97,8 @@ const Navbar = () => {
               </button>
             </li>
             <li>
-              <button onClick={() => navigate('/services')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-                {tt('nav.services')}
+              <button onClick={() => navigate('/faq')} className="py-2 px-3 text-gray-700 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
+                {tt('nav.faq')}
               </button>
             </li>
             <li>

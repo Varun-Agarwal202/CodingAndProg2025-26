@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react'
+import React, { useEffect, useMemo, useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBookmark, faMapMarkerAlt, faStar, faSearch, faTag } from '@fortawesome/free-solid-svg-icons'
@@ -78,6 +78,7 @@ const Directory = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
+  const [sortBy, setSortBy] = useState('')
   const [bookmarkedIds, setBookmarkedIds] = useState([])
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [userLocation, setUserLocation] = useState(null)
@@ -268,6 +269,17 @@ const Directory = () => {
     }
   }
 
+  const sortedListings = useMemo(() => {
+    const items = [...listings]
+    if (sortBy === 'name') {
+      items.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    } else if (sortBy === 'rating') {
+      items.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    } else if (sortBy === 'reviews') {
+      items.sort((a, b) => (b.user_ratings_total || 0) - (a.user_ratings_total || 0))
+    }
+    return items
+  }, [listings, sortBy])
   return (
     <div className="min-h-screen flex flex-col">
       <RootLayout />
@@ -339,6 +351,24 @@ const Directory = () => {
               </select>
             </div>
 
+            
+            {/* Sort Dropdown */}
+            <div className="w-full md:w-auto">
+              <label htmlFor="sort-by" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                {tt('directory.sortBy')}
+              </label>
+              <select
+                onChange={(e) => setSortBy(e.target.value)}
+                id="sort-by"
+                value={sortBy}
+                className="bf-input min-w-[200px]"
+              >
+                <option value="">{tt('directory.sortDefault')}</option>
+                <option value="name">{tt('directory.sortName')}</option>
+                <option value="rating">{tt('directory.sortRating')}</option>
+                <option value="reviews">{tt('directory.sortReviews')}</option>
+              </select>
+            </div>
             {/* Search Button */}
             <button
               onClick={handleSearch}
@@ -396,12 +426,12 @@ const Directory = () => {
             <>
               <div className="mb-4 text-gray-600 dark:text-gray-400">
                 {tt('directory.found', {
-                  count: listings.length,
-                  noun: listings.length === 1 ? tt('directory.businessSingular') : tt('directory.businessPlural'),
+                  count: sortedListings.length,
+                  noun: sortedListings.length === 1 ? tt('directory.businessSingular') : tt('directory.businessPlural'),
                 })}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {listings.map((business) => {
+                {sortedListings.map((business) => {
                   const isBookmarked = bookmarkedIds.includes(business.place_id)
                   const deals = getDealsForBusiness(business)
                   return (
@@ -489,3 +519,8 @@ const Directory = () => {
 }
 
 export default Directory
+
+
+
+
+
