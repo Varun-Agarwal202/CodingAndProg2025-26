@@ -147,7 +147,7 @@ const Login = () => {
       <main className="bf-page-shell flex-1 flex items-center justify-center">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-center w-full">
           {/* Left: Hero copy */}
-          <section className="space-y-6 text-left">
+          <section className="space-y-6 text-left animate-fade-in-up">
             <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium text-sky-600 dark:text-sky-300 bf-pill">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
               {tt('login.badge')}
@@ -162,7 +162,7 @@ const Login = () => {
           </section>
 
           {/* Right: Auth card */}
-            <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8">
+            <section className="bf-card w-full max-w-md mx-auto p-6 md:p-7 lg:p-8 animate-fade-in-up" style={{ animationDelay: '0.12s', animationFillMode: 'both' }}>
             <header className="mb-6">
                 <h2 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-50">{tt('login.cardTitle')}</h2>
                 <p className="mt-1.5 text-xs md:text-sm text-slate-600 dark:text-slate-400">

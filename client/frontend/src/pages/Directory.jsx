@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBookmark, faMapMarkerAlt, faStar, faSearch, faTag } from '@fortawesome/free-solid-svg-icons'
+import { faBookmark, faMapMarkerAlt, faStar, faSearch, faTag, faLocationDot } from '@fortawesome/free-solid-svg-icons'
 import RootLayout from '../layouts/RootLayout'
 import { AuthContext } from '../context/AuthContext'
 import LoginPromptModal from '../components/LoginPromptModal'
@@ -86,6 +86,15 @@ const Directory = () => {
     const stored = localStorage.getItem('manualLocation')
     return stored ? JSON.parse(stored) : null
   })
+  const [radiusKm, setRadiusKm] = useState(() => {
+    const r = localStorage.getItem('userRadius')
+    const n = r ? Number(r) : 10
+    return Number.isFinite(n) && n > 0 ? n : 10
+  })
+  const [locationAddress, setLocationAddress] = useState('')
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationError, setLocationError] = useState('')
+  const [showSetLocation, setShowSetLocation] = useState(false)
 
   const DEFAULT_LOC = { lat: 51.5074, lng: -0.1278 }
 
@@ -187,7 +196,7 @@ const Directory = () => {
       const body = {
         lat: lat ?? DEFAULT_LOC.lat,
         lng: lng ?? DEFAULT_LOC.lng,
-        radius: 10,
+        radius: radiusKm,
       }
       if (q) body.query = q
       else if (type) body.type = type
@@ -216,31 +225,73 @@ const Directory = () => {
     }
   }
 
+  // Initial load only (search is triggered by Search button or set location)
   useEffect(() => {
-    // initial load
     getListings()
   }, [])
 
-  // react to filter and location changes
+  // Persist radius when it changes
   useEffect(() => {
-    if (filter === 'bookmarks') {
-      setIsSearching(true)
-      getListings('', 'bookmarks')
-    } else if (filter && filter !== 'custom') {
-      setIsSearching(true)
-      getListings('', filter)
-    } else if (!filter) {
-      setIsSearching(true)
-      getListings()
-    }
-  }, [filter, userLocation, manualLocation])
+    localStorage.setItem('userRadius', String(radiusKm))
+  }, [radiusKm])
 
   const handleSearch = async () => {
     setIsSearching(true)
-    // If using custom filter, send the searchQuery as q; otherwise apply filter as type param
     if (filter === 'custom') await getListings(searchQuery.trim(), '')
     else await getListings(searchQuery.trim(), filter)
   }
+
+  const handleSetLocation = async () => {
+    const address = locationAddress.trim()
+    if (!address) {
+      setLocationError('Please enter an address or place name.')
+      return
+    }
+    setLocationError('')
+    setLocationLoading(true)
+    try {
+      const res = await fetch('http://localhost:8000/api/geocode/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setLocationError(data.error || 'Could not find location.')
+        return
+      }
+      const loc = { latitude: data.latitude, longitude: data.longitude, formatted_address: data.formatted_address || address }
+      setManualLocation(loc)
+      localStorage.setItem('manualLocation', JSON.stringify(loc))
+      setLocationAddress(data.formatted_address || address)
+      setShowSetLocation(false)
+      setIsSearching(true)
+      getListings(searchQuery.trim(), filter === 'custom' ? '' : filter)
+    } catch (err) {
+      console.error('Geocode error:', err)
+      setLocationError('Failed to look up location. Please try again.')
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
+  const clearManualLocation = () => {
+    setManualLocation(null)
+    localStorage.removeItem('manualLocation')
+    setLocationAddress('')
+    setLocationError('')
+    setIsSearching(true)
+    getListings(searchQuery.trim(), filter === 'custom' ? '' : filter)
+  }
+
+  const effectiveLoc = manualLocation || userLocation || DEFAULT_LOC
+  const lat = typeof effectiveLoc.latitude !== 'undefined' ? effectiveLoc.latitude : effectiveLoc.lat
+  const lng = typeof effectiveLoc.longitude !== 'undefined' ? effectiveLoc.longitude : effectiveLoc.lng
+  const locationLabel = manualLocation
+    ? (manualLocation.formatted_address || `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`)
+    : userLocation
+      ? 'Using your device location'
+      : 'Default location (London)'
 
   const addBookmark = async (placeId, e) => {
     e.stopPropagation()
@@ -318,7 +369,7 @@ const Directory = () => {
               </div>
             </div>
 
-            {/* Filter Dropdown */}
+            {/* Filter Dropdown - static list, no async load */}
             <div className="w-full md:w-auto">
               <label htmlFor="filter-by" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
                 {tt('directory.filterByCategory')}
@@ -351,6 +402,66 @@ const Directory = () => {
               </select>
             </div>
 
+            {/* Radius (km) */}
+            <div className="w-full md:w-auto">
+              <label htmlFor="radius" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                Radius
+              </label>
+              <select
+                id="radius"
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="bf-input min-w-[100px]"
+              >
+                <option value={2}>2 km</option>
+                <option value={5}>5 km</option>
+                <option value={10}>10 km</option>
+                <option value={15}>15 km</option>
+                <option value={25}>25 km</option>
+                <option value={50}>50 km</option>
+              </select>
+            </div>
+
+            {/* Radius (km) */}
+            <div className="w-full md:w-auto">
+              <label htmlFor="radius" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                Radius
+              </label>
+              <select
+                id="radius"
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="bf-input min-w-[100px]"
+              >
+                <option value={2}>2 km</option>
+                <option value={5}>5 km</option>
+                <option value={10}>10 km</option>
+                <option value={15}>15 km</option>
+                <option value={25}>25 km</option>
+                <option value={50}>50 km</option>
+              </select>
+            </div>
+
+            {/* Radius (km) */}
+            <div className="w-full md:w-auto">
+              <label htmlFor="radius" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                Radius
+              </label>
+              <select
+                id="radius"
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="bf-input min-w-[100px]"
+              >
+                <option value={2}>2 km</option>
+                <option value={5}>5 km</option>
+                <option value={10}>10 km</option>
+                <option value={15}>15 km</option>
+                <option value={25}>25 km</option>
+                <option value={50}>50 km</option>
+              </select>
+            </div>
+
             
             {/* Sort Dropdown */}
             <div className="w-full md:w-auto">
@@ -377,6 +488,61 @@ const Directory = () => {
             >
               {isSearching ? tt('directory.searching') : tt('common.search')}
             </button>
+          </div>
+
+          {/* Location: current + Set location toggle */}
+          <div className="mt-4 pt-4 border-t border-slate-300 dark:border-slate-700">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                <FontAwesomeIcon icon={faLocationDot} className="text-sky-500" />
+                {locationLabel}
+              </span>
+              {manualLocation && (
+                <button
+                  type="button"
+                  onClick={clearManualLocation}
+                  className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  Clear custom location
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowSetLocation((v) => !v)}
+                className="text-sm text-sky-500 hover:text-sky-400 font-medium"
+              >
+                {showSetLocation ? 'Cancel' : 'Set a different location'}
+              </button>
+            </div>
+            {showSetLocation && (
+              <div className="mt-3 flex flex-wrap gap-2 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label htmlFor="location-address" className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                    Address or place name
+                  </label>
+                  <input
+                    id="location-address"
+                    type="text"
+                    placeholder="e.g. Seattle, WA or 123 Main St"
+                    value={locationAddress}
+                    onChange={(e) => setLocationAddress(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSetLocation()}
+                    className="bf-input w-full"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSetLocation}
+                  disabled={locationLoading || !locationAddress.trim()}
+                  className="bf-button-primary"
+                >
+                  {locationLoading ? 'Looking up…' : 'Set location & search'}
+                </button>
+                {locationError && (
+                  <p className="w-full text-sm text-red-500 mt-1">{locationError}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Custom text query input */}
@@ -409,9 +575,9 @@ const Directory = () => {
         {/* Results Section - fixed min height so layout doesn't jump when loading */}
         <div className="w-full" style={{ minHeight: 480 }}>
           {loading ? (
-            <div className="bf-card p-12 text-center w-full" style={{ minHeight: 420 }}>
+            <div className="bf-card p-12 text-center w-full animate-fade-in" style={{ minHeight: 420 }}>
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-              <p className="mt-4 text-slate-600 dark:text-slate-400">{tt('directory.loadingBusinesses')}</p>
+              <p className="mt-4 text-slate-600 dark:text-slate-400 animate-pulse-soft">{tt('directory.loadingBusinesses')}</p>
             </div>
           ) : error ? (
             <div className="bf-card p-6 bg-red-900/20 border-red-500/50 w-full" style={{ minHeight: 420 }}>
@@ -431,14 +597,15 @@ const Directory = () => {
                 })}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedListings.map((business) => {
+                {listings.map((business, index) => {
                   const isBookmarked = bookmarkedIds.includes(business.place_id)
                   const deals = getDealsForBusiness(business)
                   return (
                     <div
                       key={business.id || business.place_id}
                       onClick={() => navigate(`/business/${business.place_id}`)}
-                      className="bf-card p-6 hover:scale-[1.02] transition-transform cursor-pointer group"
+                      className="bf-card p-6 hover:scale-[1.02] transition-transform cursor-pointer group animate-fade-in-up"
+                      style={{ animationDelay: `${Math.min(index * 50, 400)}ms`, animationFillMode: 'both' }}
                     >
                       {/* Header with bookmark */}
                       <div className="flex items-start justify-between mb-3">

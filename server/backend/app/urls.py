@@ -11,6 +11,8 @@ from .views import (
     add_review,
     generate_report,
     ai_chat,
+    request_spotlight,
+    community_spotlight,
 )
 
 urlpatterns = [
@@ -24,4 +26,6 @@ urlpatterns = [
     path('generate_report/', generate_report, name='generate_report'),
     path('ai_chat/', ai_chat, name='ai_chat'),
     path('add_review/', add_review, name='add_review'),
+    path('request_spotlight/', request_spotlight, name='request_spotlight'),
+    path('community_spotlight/', community_spotlight, name='community_spotlight'),
 ]

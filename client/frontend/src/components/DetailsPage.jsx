@@ -107,7 +107,7 @@ const DetailsPage = ({ data }) => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10">
       {/* Top summary */}
-      <div className="mb-8 space-y-3">
+      <div className="mb-8 space-y-3 animate-fade-in-up">
         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-500 dark:text-sky-300">
           <span className="h-2 w-2 rounded-full bg-sky-400" />
           Local business profile
@@ -154,7 +154,7 @@ const DetailsPage = ({ data }) => {
 
       {/* Photos */}
       {effectiveData.photos && effectiveData.photos.length > 0 && (
-        <div className="mb-10">
+        <div className="mb-10 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
           <h2 className="text-xl font-semibold mb-3 text-slate-900 dark:text-slate-50">
             {tt('details.photos')}
           </h2>
@@ -172,19 +172,39 @@ const DetailsPage = ({ data }) => {
       )}
 
       {/* Opening hours */}
-      <div className="mb-8">
+      <div className="mb-8 animate-fade-in" style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
         <h2 className="text-2xl font-semibold mb-4">{tt('details.openingHours')}</h2>
         {effectiveData.opening_hours?.weekday_text?.map((hours, index) => (
           <p key={index} className="mb-1">{hours}</p>
         ))}
       </div>
 
+      {/* Featured deals */}
+      {effectiveData.deals && effectiveData.deals.length > 0 && (
+        <div className="mb-10 animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+          <h2 className="text-xl font-semibold mb-3 text-slate-900 dark:text-slate-50">
+            Featured deals
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2 animate-stagger">
+            {effectiveData.deals.map((deal, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-4 py-3 text-sm text-slate-100"
+              >
+                <span className="mt-0.5 shrink-0 text-emerald-400" aria-hidden>✓</span>
+                <span>{deal}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Reviews list */}
-      <div>
+      <div className="animate-fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
         <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-50">
           {tt('details.reviews')}
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-4 animate-stagger">
           {effectiveData.reviews?.length ? (
             effectiveData.reviews.map((review, index) => (
               <div

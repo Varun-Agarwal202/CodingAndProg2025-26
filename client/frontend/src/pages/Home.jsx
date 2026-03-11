@@ -20,7 +20,7 @@ const Home = () => {
       {showMap ? (
         <main className="flex-1 bf-hero-gradient" role="main">
           <section className="bf-page-shell bf-page-shell--xwide mx-auto grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-center pt-10 pb-12 lg:pt-14 lg:pb-16">
-            <div className="space-y-7 text-left max-w-xl">
+            <div className="space-y-7 text-left max-w-xl animate-fade-in-up">
               <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium bf-pill text-slate-900 dark:text-slate-100">
                 <span className="h-1.5 w-1.5 rounded-full bg-sky-500 dark:bg-sky-400" />
                 {tt('home.badge')}
@@ -48,12 +48,12 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="bf-card p-5 md:p-6 lg:p-7">
+            <div className="bf-card p-5 md:p-6 lg:p-7 animate-fade-in-up" style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
               <CommunitySpotlight />
             </div>
           </section>
 
-          <section className="bf-page-shell bf-page-shell--xwide mx-auto pb-10 lg:pb-14">
+          <section className="bf-page-shell bf-page-shell--xwide mx-auto pb-10 lg:pb-14 animate-fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
             <HomeUser />
           </section>
         </main>

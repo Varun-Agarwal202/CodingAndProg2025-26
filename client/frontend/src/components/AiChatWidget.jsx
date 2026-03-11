@@ -47,13 +47,13 @@ const AiChatWidget = () => {
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="fixed bottom-4 right-4 z-40 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg px-4 py-2 text-sm font-semibold"
+        className="fixed bottom-4 right-4 z-40 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg px-4 py-2 text-sm font-semibold transition-transform hover:scale-105 active:scale-95"
       >
         AI Help
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-700 bg-slate-900/95 shadow-xl flex flex-col">
+        <div className="fixed bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-700 bg-slate-900/95 shadow-xl flex flex-col animate-scale-in">
           <header className="px-4 py-2 border-b border-slate-700 flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-50">BusinessFinder Helper</span>
             <button
@@ -76,11 +76,12 @@ const AiChatWidget = () => {
             {messages.map((m, idx) => (
               <div
                 key={idx}
-                className={`rounded-lg px-3 py-2 max-w-full ${
+                className={`rounded-lg px-3 py-2 max-w-full animate-slide-in-up ${
                   m.role === 'user'
                     ? 'bg-sky-600 text-slate-950 ml-auto'
                     : 'bg-slate-800 text-slate-100 mr-auto'
                 }`}
+                style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'both' }}
               >
                 {m.text}
               </div>

@@ -21,6 +21,11 @@ class Business(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     special_offers = models.TextField(null=True, blank=True)
+    # When True, this business can appear in the Community Spotlight component.
+    # spotlight_added_at is used so we can evict the oldest spotlight entry when
+    # the list is full.
+    is_spotlight = models.BooleanField(default=False)
+    spotlight_added_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -114,6 +119,7 @@ class Business(models.Model):
             "photos": self.photos,
             "special_offers": self.special_offers,
             "deals": deals,
+            "is_spotlight": self.is_spotlight,
         }
 class Profile(models.Model):
     ROLE_USER = 'user'

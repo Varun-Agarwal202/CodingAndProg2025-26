@@ -34,27 +34,24 @@ const CommunitySpotlight = () => {
     const fetchFeatured = async () => {
       setLoading(true)
       try {
-        const loc = readStoredLocation() || DEFAULT_LOCATION
-        const response = await fetch('http://localhost:8000/api/nearby_businesses/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lat: loc.latitude,
-            lng: loc.longitude,
-            radius: radiusKm,
-          }),
-        })
+        // Prefer server-managed spotlight list. This allows business owners
+        // to request a spotlight slot while still falling back to high-rated
+        // local businesses if none are configured.
+        const response = await fetch(
+          `http://localhost:8000/api/community_spotlight/?limit=4&radius=${radiusKm}`,
+          {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const data = await response.json()
-        const raw = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : [])
+        const raw = Array.isArray(data) ? data : []
 
-        // pick top-rated (fallback 0), keep only items with place_id + name
-        const top = raw
+        const cleaned = raw
           .filter((x) => x && x.place_id && x.name)
-          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-          .slice(0, 4)
 
-        if (mounted) setFeatured(top)
+        if (mounted) setFeatured(cleaned)
       } catch (err) {
         console.error('Error fetching community spotlight:', err)
         if (mounted) setFeatured([])

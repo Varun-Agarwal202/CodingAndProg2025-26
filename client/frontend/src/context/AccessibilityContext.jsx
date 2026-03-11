@@ -62,7 +62,8 @@ export const AccessibilityProvider = ({ children }) => {
     utterance.rate = options.rate || speechRate
     utterance.pitch = options.pitch || 1.0
     utterance.volume = options.volume || 1.0
-    utterance.lang = language === 'es' ? 'es-ES' : language === 'fr' ? 'fr-FR' : 'en-US'
+    const langMap = { en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', zh: 'zh-CN', hi: 'hi-IN', ar: 'ar-SA', pt: 'pt-BR', ja: 'ja-JP', ru: 'ru-RU', it: 'it-IT', ko: 'ko-KR', nl: 'nl-NL' }
+    utterance.lang = langMap[language] || 'en-US'
 
     window.speechSynthesis.speak(utterance)
   }

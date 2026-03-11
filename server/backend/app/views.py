@@ -1,5 +1,6 @@
 import logging
 from django.conf import settings
+from django.utils import timezone
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -265,6 +266,84 @@ def add_bookmark(request):
     return JsonResponse({'success': action, 'bookmarks': list(profile.bookmarked_businesses.values_list('place_id', flat=True))})
 
 
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def request_spotlight(request):
+    """
+    Allow a business account to request a place in the Community Spotlight.
+
+    Expected payload: { place_id }
+    - Only users with Profile.role == 'business' are allowed.
+    - If the business is already in the spotlight, this is a no-op.
+    - Otherwise the business is marked as spotlight. If the maximum number of
+      spotlight entries is reached, the oldest spotlight business is evicted.
+    """
+    profile = getattr(request.user, 'profile', None)
+    if profile is None or not profile.is_business():
+        return JsonResponse({'error': 'Only business accounts can request spotlight.'}, status=403)
+
+    place_id = request.data.get('place_id')
+    if not place_id:
+        return JsonResponse({'error': 'place_id is required.'}, status=400)
+
+    try:
+        business = Business.objects.get(place_id=place_id)
+    except Business.DoesNotExist:
+        return JsonResponse({'error': 'Business not found'}, status=404)
+
+    # Already spotlighted – nothing to do.
+    if business.is_spotlight:
+        return JsonResponse({'success': True, 'already_spotlight': True})
+
+    MAX_SPOTLIGHT = 4
+    current_spotlight = list(
+        Business.objects.filter(is_spotlight=True).order_by('spotlight_added_at', 'updated_at')
+    )
+    if len(current_spotlight) >= MAX_SPOTLIGHT:
+        # Remove the oldest spotlight entry to make room.
+        oldest = current_spotlight[0]
+        oldest.is_spotlight = False
+        oldest.spotlight_added_at = None
+        oldest.save()
+
+    business.is_spotlight = True
+    business.spotlight_added_at = timezone.now()
+    business.save()
+
+    return JsonResponse({'success': True, 'place_id': business.place_id})
+
+
+@api_view(['GET'])
+def community_spotlight(request):
+    """
+    Return the current Community Spotlight businesses.
+
+    - Primary source: businesses with is_spotlight=True, ordered by
+      spotlight_added_at (most recent first) and rating.
+    - If there are none, fall back to the highest-rated businesses in the
+      local Business table.
+    """
+    try:
+        limit = int(request.GET.get('limit', 4))
+    except (TypeError, ValueError):
+        limit = 4
+    limit = max(1, min(limit, 8))
+
+    spotlight_qs = Business.objects.filter(is_spotlight=True).order_by(
+        '-spotlight_added_at', '-rating', '-user_ratings_total'
+    )[:limit]
+    spotlight = [b.return_dict() for b in spotlight_qs]
+
+    if spotlight:
+        return JsonResponse(spotlight, safe=False)
+
+    # Fallback: use top-rated businesses from the table, if any.
+    fallback_qs = Business.objects.all().order_by('-rating', '-user_ratings_total')[:limit]
+    fallback = [b.return_dict() for b in fallback_qs]
+    return JsonResponse(fallback, safe=False)
+
+
 @csrf_exempt
 @api_view(['GET'])
 def get_businesses(request):
@@ -477,13 +556,13 @@ def ai_chat(request):
         return JsonResponse({'error': 'Gemini API key not configured'}, status=500)
 
     # Use a model that supports v1beta generateContent (gemini-1.5-flash is deprecated)
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     system_instruction = (
         "You are the helper bot for BusinessFinder, a website that helps people discover local businesses "
         "using Google Maps data. Answer questions about how to use the site, how bookmarking works, roles "
         "(user vs business), and what the map / directory pages do. If asked things unrelated to the app, "
-        "answer briefly and politely but do not claim to perform actions in the real world."
+        "answer briefly and politely but do not claim to perform actions in the real world. by the way, in order for a user to contact us, they need to go to the contact page in the navbar header. additionally to choose their own location, users select the set locaiton button next to the map or on the directory page."
     )
 
     payload = {
